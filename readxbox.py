@@ -1,19 +1,30 @@
 from evdev import categorize, InputDevice, ecodes
-import RPi.GPIO as GPIO          
+import subprocess
+import RPi.GPIO as GPIO
 from time import sleep
 
-device = InputDevice('/dev/input/event6')
+p = subprocess.run(["lsinput"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
+xboxLine = str(next((ln for ln in p.stdout.splitlines() if "xbox" in ln.lower()), "")).strip()
+
+print(xboxLine)
+
+event = xboxLine[0]
+print("xbox event is event number", event)
+
+#Use lsinput to check which event controller is associated with
+device = InputDevice('/dev/input/event8')
 
 #define the pin for drv8833#1
 NSLEEP1 = 12  #Enabling signal pin for drv8833
-motor_1_backward = 17
-motor_1_forward = 27
+motor_1_backward = 27
+motor_1_forward = 17
 motor_2_backward = 22
 motor_2_forward = 23
 #define the pin for drv8833#2
 NSLEEP2 = 13
-motor_3_forward = 24
-motor_3_backward = 25
+motor_3_forward = 25
+motor_3_backward = 24
 motor_4_forward = 26
 motor_4_backward = 16
 temp1=1
@@ -50,7 +61,7 @@ p2.start(dutyCycle)#P2 defaults to a duty cycle of 30%
 print("\n")
 print("The default speed & direction of motor is LOW & Forward rotation")
 print("o-stop w-forward d-rotate_right a-rotate_left s-reverse l-low m-medium h-high e-exit")
-print("\n")   
+print("\n")
 
 print(f"Reading {device.name} ({device.path})")
 while(1):
@@ -65,7 +76,7 @@ while(1):
 					GPIO.output(motor_1_backward,GPIO.LOW)
 					GPIO.output(motor_1_forward,GPIO.HIGH)# front right forward
 					GPIO.output(motor_2_backward,GPIO.LOW)
-					GPIO.output(motor_2_forward,GPIO.HIGH)# front left forward 
+					GPIO.output(motor_2_forward,GPIO.HIGH)# front left forward
 					GPIO.output(motor_3_forward,GPIO.HIGH)
 					GPIO.output(motor_3_backward,GPIO.LOW)#backleft backwards
 					GPIO.output(motor_4_forward,GPIO.HIGH)
@@ -84,8 +95,8 @@ while(1):
 					GPIO.output(motor_4_backward,GPIO.HIGH)
 					temp1=1
 					x='z'
-				if "BTN_B" in key_event.keycode:
-					print("right")
+				if "BTN_X" in key_event.keycode:
+					print("left")
 					GPIO.output(motor_1_backward,GPIO.HIGH)
 					GPIO.output(motor_1_forward,GPIO.LOW)
 					GPIO.output(motor_2_backward,GPIO.LOW)
@@ -96,8 +107,8 @@ while(1):
 					GPIO.output(motor_4_backward,GPIO.LOW)
 					temp1=1
 					x='z'
-				if "BTN_X" in key_event.keycode:
-					print("left")
+				if "BTN_B" in key_event.keycode:
+					print("right")
 					GPIO.output(motor_1_backward,GPIO.LOW)
 					GPIO.output(motor_1_forward,GPIO.HIGH)
 					GPIO.output(motor_2_backward,GPIO.HIGH)
@@ -110,24 +121,24 @@ while(1):
 					x='z'
 				if "BTN_TR" in key_event.keycode:
 					print("clockwise rotate")
-					GPIO.output(motor_1_backward,GPIO.HIGH)
-					GPIO.output(motor_1_forward,GPIO.LOW)
+					GPIO.output(motor_1_backward,GPIO.LOW)
+					GPIO.output(motor_1_forward,GPIO.HIGH)
 					GPIO.output(motor_2_backward,GPIO.LOW)
 					GPIO.output(motor_2_forward,GPIO.HIGH)
-					GPIO.output(motor_3_forward,GPIO.HIGH)
-					GPIO.output(motor_3_backward,GPIO.LOW)
+					GPIO.output(motor_3_forward,GPIO.LOW)
+					GPIO.output(motor_3_backward,GPIO.HIGH)
 					GPIO.output(motor_4_forward,GPIO.LOW)
 					GPIO.output(motor_4_backward,GPIO.HIGH)
 					temp1=1
 					x='z'
 				if "BTN_TL" in key_event.keycode:
 					print("counterclockwise rotate")
-					GPIO.output(motor_1_backward,GPIO.LOW)
-					GPIO.output(motor_1_forward,GPIO.HIGH)
+					GPIO.output(motor_1_backward,GPIO.HIGH)
+					GPIO.output(motor_1_forward,GPIO.LOW)
 					GPIO.output(motor_2_backward,GPIO.HIGH)
 					GPIO.output(motor_2_forward,GPIO.LOW)
-					GPIO.output(motor_3_forward,GPIO.LOW)
-					GPIO.output(motor_3_backward,GPIO.HIGH)
+					GPIO.output(motor_3_forward,GPIO.HIGH)
+					GPIO.output(motor_3_backward,GPIO.LOW)
 					GPIO.output(motor_4_forward,GPIO.HIGH)
 					GPIO.output(motor_4_backward,GPIO.LOW)
 					temp1=1
@@ -156,7 +167,7 @@ while(1):
 					GPIO.output(motor_1_backward,GPIO.LOW)
 					GPIO.output(motor_1_forward,GPIO.LOW)# front right forward
 					GPIO.output(motor_2_backward,GPIO.LOW)
-					GPIO.output(motor_2_forward,GPIO.LOW)# front left forward 
+					GPIO.output(motor_2_forward,GPIO.LOW)# front left forward
 					GPIO.output(motor_3_forward,GPIO.LOW)
 					GPIO.output(motor_3_backward,GPIO.LOW)#backleft backwards
 					GPIO.output(motor_4_forward,GPIO.LOW)
@@ -230,12 +241,12 @@ while(1):
 			elif event.code == ecodes.REL_Y:
 				print(f"Mouse Y movement: {event.value}")
 		# Add more conditions to handle other event types as needed
-	 
-			
+
+
 
 
 		#x=input()
-	  
+
 		# if x=='r':
 			# print("run")
 			# if(temp1==1):
@@ -279,7 +290,7 @@ while(1):
 			# GPIO.output(motor_1_backward,GPIO.LOW)
 			# GPIO.output(motor_1_forward,GPIO.HIGH)# front right forward
 			# GPIO.output(motor_2_backward,GPIO.LOW)
-			# GPIO.output(motor_2_forward,GPIO.HIGH)# front left forward 
+			# GPIO.output(motor_2_forward,GPIO.HIGH)# front left forward
 			# GPIO.output(motor_3_forward,GPIO.HIGH)
 			# GPIO.output(motor_3_backward,GPIO.LOW)#backleft backwards
 			# GPIO.output(motor_4_forward,GPIO.HIGH)
@@ -299,7 +310,7 @@ while(1):
 			# GPIO.output(motor_4_backward,GPIO.HIGH)
 			# temp1=1
 			# x='z'
-		
+
 		# elif x=='d':
 			# print("right")
 			# GPIO.output(motor_1_backward,GPIO.HIGH)
@@ -325,7 +336,7 @@ while(1):
 			# GPIO.output(motor_4_backward,GPIO.LOW)
 			# temp1=1
 			# x='z'
-			
+
 		# elif x=='l':
 			# print("low")
 			# p1.ChangeDutyCycle(30)#Set the P1 pulse signal duty cycle to 30%
@@ -345,7 +356,7 @@ while(1):
 			# GPIO.cleanup()
 			# print("GPIO Clean up")
 			# break
-		
+
 		# else:
 			# print("<<<  wrong data  >>>")
 			# print("please enter the defined data to continue.....")
