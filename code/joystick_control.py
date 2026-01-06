@@ -21,7 +21,7 @@ right_x = 2 #axis 2 = right stick x
 right_y = 5 #axis 3 = right stick y
 
 #Use lsinput to check which event controller is associated with
-device = InputDevice('/dev/input/event6')
+device = InputDevice('/dev/input/event5')
 
 # ============================================
 # MOTOR DRIVER SET UP
@@ -89,9 +89,11 @@ m3b.start(0)
 m4f.start(0)
 m4b.start(0)
 
-
-scale_max = 100
-scale_min = -100 
+# ============================================
+# NUMBER SCALING FUNCTIONS
+# ============================================
+scale_max = 1
+scale_min = -1 
 analog_max = 32767
 analog_min = -32767
 # func to convert analog value range to range for pwm
@@ -101,12 +103,24 @@ def convert_range(value):
     new_range = (scale_max - scale_min)
     new_value = (((value - analog_min) * new_range) / old_range) + scale_min
     return new_value
+    
+# Function to combine readings of right and left trigger and map to range
+def convert_trigger(rightIn, leftIn):
+    rightIn= int(rightIn)
+    leftIn= int(leftIn)
+    rightIn = rightIn + analog_max
+    leftIn = leftIn + analog_max
+    output_trigger = rightIn - leftIn
+    output_trigger = (((output_trigger) * 100) / 65534)
+    return output_trigger
 
 print(f"Reading {device.name} ({device.path})")
 
+# variables for running jstest as subprocess in order to get data from controller
 cmd = "jstest /dev/input/js0"
 process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
 
+# vectors for programing motors
 forward_v = [ 1, 1, 1, 1, 0, 0, 0, 0]
 backward_v = [ 0, 0, 0, 0, 1, 1, 1, 1]
 right_v = [ 1, 0, 1, 0, 0, 1, 0, 1]
@@ -136,22 +150,36 @@ output_v = [ 0, 0, 0, 0, 0, 0, 0, 0]
 # Remember to format vectors into original values
 
 while True:
+    # reset vectors for next reading
     forward_v = [ 1, 1, 1, 1, 0, 0, 0, 0]
     backward_v = [ 0, 0, 0, 0, 1, 1, 1, 1]
     right_v = [ 1, 0, 1, 0, 0, 1, 0, 1]
     left_v = [ 0, 1, 0, 1, 1, 0, 1, 0]
     clock_v = [ 1, 1, 0, 0, 0, 0, 1, 1]
     counter_v = [ 0, 0, 1, 1, 1, 1, 0, 0]
+    
+    # using jstest to read input from controller
     line = process.stdout.readline()
+    
+    # breaking up line to array
     splitLine = re.split(":\s*(-?\d+)", line)
-    print(forward_v)
+    
+    # error handling if no output
     if not line:
         break
+    # if we have data we will access data we need and convert to normal range
     if len(splitLine) > 3:
+        print(splitLine)
         xAxis = splitLine[3] 
         yAxis = splitLine[5]
+        rightRead = splitLine[11]   #Right Trigger
+        leftRead = splitLine[13]   #Left Trigger
+        
         xAxis = convert_range(xAxis)
         yAxis = convert_range(yAxis)
+        zAxis = convert_trigger(rightRead, leftRead)
+        
+        #have to map to vector and use algo for clocksum
         
         #setting forward vector to yaxis vals
         if (yAxis < 0):
@@ -168,13 +196,11 @@ while True:
                 backward_v[(i)] = 0
                 forward_v[(i)] = 0
                 
-                
+        #setting lateral vector to xaxis vals        
         if (xAxis > 0):
             for i in range(8):
                 right_v[i] = (xAxis * right_v[i])
                 left_v[i] = 0
-                
-            
         elif (xAxis < 0):
             for i in range(8):
                 left_v[i] = (xAxis * left_v[i])
@@ -184,18 +210,31 @@ while True:
             for i in range(8):
                 left_v[i] = 0
                 right_v[i] = 0
+                
+        #setting moment vector to trigger vals        
+        if (zAxis > 0):
+            for i in range(8):
+                clock_v[i] = (abs(zAxis) * clock_v[i])
+                counter_v[i] = 0
+        elif (zAxis < 0):
+            for i in range(8):
+                counter_v[i] = (abs(zAxis) * counter_v[i])
+                clock_v[i] = 0
+        else:
+            for i in range(8):
+                counter_v[i] = 0
+                clock_v[i] = 0
         
-        # format pythag vector
+        # compute pythag vector
         for i in range(8):
             forward_v[i] = (forward_v[i] * forward_v[i])
             backward_v[i] = (backward_v[i] * backward_v[i])
             right_v[i] = (right_v[i] * right_v[i])
             left_v[i] = (left_v[i] * left_v[i])
-            print(f"left {left_v}")
+            #print(f"left {left_v}")
             working_v[i] = math.sqrt(abs(forward_v[i]) + abs(backward_v[i]) + abs(left_v[i]) + abs(right_v[i]))
         
-        print(f"working_v {working_v}")
-        
+        # format output vector
         for i in range(4):
             if (working_v[i] > working_v[i+4]):
                 output_v[i] = working_v[i] - working_v[i+4]
@@ -203,12 +242,27 @@ while True:
             else:
                 output_v[i+4] = working_v[i+4] - working_v[i]
                 output_v[i] = 0
+                
+        #Turn override for output vector
+        for i in range(8):
+            output_v[i] = ((100 - abs(zAxis)) * output_v[i]) + clock_v[i] + counter_v[i]
+        print(f"output_v {output_v}")
+        
+        # format output vector
+        for i in range(4):
+            if (output_v[i] > output_v[i+4]):
+                output_v[i] = output_v[i] - output_v[i+4]
+                output_v[i+4] = 0
+            else:
+                output_v[i+4] = output_v[i+4] - output_v[i]
+                output_v[i] = 0
+                
+        # range conversion not working entirely as intented, if there are values above 100, we set them to 100
         for i in range(8):
             if (output_v[i] > 100):
                 output_v[i] = 100
                 
-        print(f"output_v {output_v}")
-        
+        # set motor values to value calculated
         m1f.start(output_v[0])
         m2f.start(output_v[1])
         m3f.start(output_v[2])
@@ -218,11 +272,5 @@ while True:
         m3b.start(output_v[6])
         m4b.start(output_v[7])
         
-                
-        #print(f"x-axis {xAxis}\ny-axis {yAxis}")
     else:
         print(line.rstrip(), flush=True)
-    
-    #print(splitLine)
-    
-    print("hellooooooo")
