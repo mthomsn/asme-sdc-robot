@@ -30,9 +30,15 @@ void getRgbValues(){
   tcs.getRawData(&r, &g, &b, &c);
 }
 
-String getColorName(uint16_t r,uint16_t g,uint16_t b){
-  //tells if the color is blue
-  if ((b > r * 1.5) && (b > g * 0.7)){
+String getColorName(uint16_t r,uint16_t g,uint16_t b, uint16_t c){
+
+  if(c < 630){ //tells if the color is black
+    return "Black";
+  }
+  else if((g > r * 2.1) && (g > b * 2.0)){ //tells if the color is Green
+    return "Green";
+  }
+  else if ((b > r * 1.5) && (b > g * 0.7)){ //tells if the color is blue
     return "Blue";
   }
   else{
@@ -45,7 +51,7 @@ void loop() {
 
   getRgbValues();
 
-  String name = getColorName(r,g,b);
+  String name = getColorName(r,g,b,c);
   Serial.println(name);
 
   //Serial.print("R: "); Serial.print(r);
