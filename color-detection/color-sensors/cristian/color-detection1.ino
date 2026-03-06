@@ -12,6 +12,8 @@ uint16_t r;
 uint16_t g;
 uint16_t b;
 uint16_t c;
+const uint16_t PRESENCE_THRESHOLD = 150;
+
 
 
 void setup() {
@@ -30,20 +32,39 @@ void getRgbValues(){
   tcs.getRawData(&r, &g, &b, &c);
 }
 
+bool objectDetected(uint16_t c){
+  return c > PRESENCE_THRESHOLD;  
+}
+
 String getColorName(uint16_t r,uint16_t g,uint16_t b, uint16_t c){
 
-  if(c < 630){ //tells if the color is black
-    return "Black";
-  }
-  else if((g > r * 2.1) && (g > b * 2.0)){ //tells if the color is Green
-    return "Green";
-  }
-  else if ((b > r * 1.5) && (b > g * 0.7)){ //tells if the color is blue
-    return "Blue";
-  }
-  else{
+  if(c == 0){
     return "Unknown";
   }
+
+  float rRatio = (float)r/c;
+  float gRatio = (float)g/c;
+  float bRatio = (float)b/c;
+
+  
+ if ((gRatio > rRatio) && (gRatio > bRatio) && (gRatio > 0.40)) {
+    return "Green";
+  }
+
+  else if ((bRatio > rRatio) && (bRatio > gRatio) && (bRatio > 0.40)) {
+    return "Blue";
+  }
+
+  else if (c >= 1000){
+    return "Gray";
+  }
+  else if (c > 620){
+    return "Black";
+  }
+  else {
+      return "Unknown";
+  }
+
 
 }
 
@@ -51,15 +72,30 @@ void loop() {
 
   getRgbValues();
 
-  String name = getColorName(r,g,b,c);
-  Serial.println(name);
+/*
+  if (c != 0) {
+    Serial.print(" r/c: "); Serial.print((float)r / c, 3);
+    Serial.print(" g/c: "); Serial.print((float)g / c, 3);
+    Serial.print(" b/c: "); Serial.println((float)b / c, 3);
+  }
+*/
+/*
+  Serial.print("R: "); Serial.print(r);
+  Serial.print(" G: "); Serial.print(g);
+  Serial.print(" B: "); Serial.print(b);
+  Serial.print(" C: "); Serial.println(c);
+*/
 
-  //Serial.print("R: "); Serial.print(r);
-  //Serial.print(" G: "); Serial.print(g);
-  //Serial.print(" B: "); Serial.print(b);
-  //Serial.print(" C: "); Serial.println(c);
+  if(objectDetected(c)){
+    String name = getColorName(r,g,b,c);
+    Serial.print("->");
+    Serial.println(name);
+  }
+  else {
+    Serial.println("-> No object found");
+  }
 
- 
+  
 
   delay(500);
 }
