@@ -54,7 +54,6 @@ String getColorName(uint16_t r,uint16_t g,uint16_t b, uint16_t c){
   // Used to help detect low-saturation colors like gray or black
   float cRatio = (float)c / (r + g + b + c);
   
-
   
  if ((gRatio > rRatio) && (gRatio > bRatio) && (gRatio > 0.40)) { // gets the green color name 
     return "Green";
@@ -77,6 +76,20 @@ String getColorName(uint16_t r,uint16_t g,uint16_t b, uint16_t c){
 
 }
 
+// Determines whether the detected object should be classified as trash or recycle
+String getType(String name){
+
+  if(name == "Green" || name == "Blue"){ // Green and Blue items are classified as recycle
+    return "Recycle";
+  }
+  else if (name == "Black" || name == "Gray"){ // Black and Gray items are classified as trash
+    return "Trash";
+  }
+  else{
+    return "Unknown";
+  }
+}
+
 void loop() {
 
   getRgbValues();
@@ -94,17 +107,23 @@ void loop() {
   Serial.print(" B: "); Serial.print(b);
   Serial.print(" C: "); Serial.println(c);
 */
+    if (objectDetected(c)) {
 
-  if(objectDetected(c)){
-    String name = getColorName(r,g,b,c);
-    Serial.print("->");
-    Serial.println(name);
+    String colorName = getColorName(r,g,b,c);
+    String typeName = getType(colorName);
+
+    Serial.print("Color: ");
+    Serial.print(colorName);
+    Serial.print(" type: ");
+    Serial.println(typeName);
+
+  } else {
+    Serial.println("No object detected");
   }
-  else {
-    Serial.println("-> No object found");
-  }
+ 
+  
 
   
 
-  delay(500);
+  delay(700);
 }
