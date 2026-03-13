@@ -28,37 +28,46 @@ void setup() {
   }
 }
 
+// gets the raw RGB and clear values
 void getRgbValues(){
   tcs.getRawData(&r, &g, &b, &c);
 }
 
+// Returns true if the clear sensor value is above the threshold,
+// indicating an object is detected.
 bool objectDetected(uint16_t c){
   return c > PRESENCE_THRESHOLD;  
 }
 
+
+// This functions allows us to get the color names from a ratio of the RGB and clear values 
 String getColorName(uint16_t r,uint16_t g,uint16_t b, uint16_t c){
 
-  if(c == 0){
-    return "Unknown";
-  }
 
+  // Calculate normalized RGB ratios relative to the clear light value
+  // This helps determine which color channel is strongest compared to total light
   float rRatio = (float)r/c;
   float gRatio = (float)g/c;
   float bRatio = (float)b/c;
 
+  // Calculate the clear light ratio compared to all channels combined
+  // Used to help detect low-saturation colors like gray or black
+  float cRatio = (float)c / (r + g + b + c);
   
- if ((gRatio > rRatio) && (gRatio > bRatio) && (gRatio > 0.40)) {
+
+  
+ if ((gRatio > rRatio) && (gRatio > bRatio) && (gRatio > 0.40)) { // gets the green color name 
     return "Green";
   }
 
-  else if ((bRatio > rRatio) && (bRatio > gRatio) && (bRatio > 0.40)) {
+  else if ((bRatio > rRatio) && (bRatio > gRatio) && (bRatio > 0.40)) { // gets the blue color name
     return "Blue";
   }
 
-  else if (c >= 1000){
+  else if ((rRatio < cRatio) && (gRatio < cRatio) && (bRatio < cRatio) && (c >= 1000)){ // gets the gray color name 
     return "Gray";
   }
-  else if (c > 620){
+  else if ((rRatio < cRatio) && (gRatio < cRatio) && (bRatio < cRatio) && (c > 650)){ // gets the black color name
     return "Black";
   }
   else {
