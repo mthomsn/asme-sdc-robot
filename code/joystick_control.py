@@ -92,8 +92,8 @@ m4b.start(0)
 # ============================================
 # NUMBER SCALING FUNCTIONS
 # ============================================
-scale_max = 1
-scale_min = -1 
+scale_max = 1.0
+scale_min = -1.0 
 analog_max = 32767
 analog_min = -32767
 # func to convert analog value range to range for pwm
@@ -114,6 +114,16 @@ def convert_trigger(rightIn, leftIn):
     output_trigger = (((output_trigger) * 100) / 65534)
     return output_trigger
 
+def setPrecisionMode(state):
+    global scale_max
+    global scale_min
+    if (state == True):
+        scale_max = 0.6
+        scale_min = -0.6
+    else:
+        scale_max = 1
+        scale_min = -1
+
 print(f"Reading {device.name} ({device.path})")
 
 # variables for running jstest as subprocess in order to get data from controller
@@ -132,6 +142,9 @@ working_v = [ 0, 0, 0, 0, 0, 0, 0, 0]
 output_v = [ 0, 0, 0, 0, 0, 0, 0, 0]
     
 
+# ============================================
+# CONTROL ALGORITHM 
+# ============================================
 #if yAxis scalar value is positive first 4 elements will be scalar range
 # elif the yAxis scalar value is neg last 4 elements will be abs val of scalar range
 # else all vals are equal
@@ -149,6 +162,12 @@ output_v = [ 0, 0, 0, 0, 0, 0, 0, 0]
 
 # Remember to format vectors into original values
 
+# ============================================
+# BUTTON STATE INIT
+# ============================================
+currentBtnAState = "off"
+precisionMode = False
+
 while True:
     # reset vectors for next reading
     forward_v = [ 1, 1, 1, 1, 0, 0, 0, 0]
@@ -158,26 +177,43 @@ while True:
     clock_v = [ 1, 1, 0, 0, 0, 0, 1, 1]
     counter_v = [ 0, 0, 1, 1, 1, 1, 0, 0]
     
-    # using jstest to read input from controller
+    # using jstest to read input from controller:\s*(-?\d+)|(\d+):(on|off)
     line = process.stdout.readline()
+    #print(f"jstest output: {line}")
     
     # breaking up line to array
     splitLine = re.split(":\s*(-?\d+)", line)
+    buttonSplitLine = re.split("(\d+):(on|off)", line)
+    
+    # tracking button state
+    lastBtnAState = currentBtnAState
+    print(f"last btn state: {lastBtnAState}")
+    print(f"current btn state: {currentBtnAState}")
+    
+    
     
     # error handling if no output
     if not line:
         break
     # if we have data we will access data we need and convert to normal range
     if len(splitLine) > 3:
-        print(splitLine)
+        #print(f"button split line: {buttonSplitLine}")
         xAxis = splitLine[3] 
         yAxis = splitLine[5]
         rightRead = splitLine[11]   #Right Trigger
         leftRead = splitLine[13]   #Left Trigger
+        currentBtnAState = buttonSplitLine[2]
+        
+        if (lastBtnAState == "on" and currentBtnAState == "off"):
+            print("btn pressed")
+            precisionMode = not precisionMode
+            setPrecisionMode(precisionMode)
+            print(f"scale max: {scale_max}")
+            print(f"scale min: {scale_min}")
         
         xAxis = convert_range(xAxis)
         yAxis = convert_range(yAxis)
-        zAxis = convert_trigger(rightRead, leftRead)
+        zAxis = convert_trigger(rightRead, leftRead)     
         
         #have to map to vector and use algo for clocksum
         
@@ -186,7 +222,7 @@ while True:
             for i in range(8):
                 forward_v[i] = (yAxis * forward_v[i])
                 backward_v[(i)] = 0
-            print(f"forward_v {forward_v}")
+            #print(f"forward_v {forward_v}")
         elif (yAxis > 0):
             for i in range(8):
                 backward_v[(i)] = (yAxis * backward_v[i])
@@ -205,7 +241,7 @@ while True:
             for i in range(8):
                 left_v[i] = (xAxis * left_v[i])
                 right_v[i] = 0
-            print(f"left {left_v}")
+            #print(f"left {left_v}")
         else:
             for i in range(8):
                 left_v[i] = 0
@@ -246,7 +282,7 @@ while True:
         #Turn override for output vector
         for i in range(8):
             output_v[i] = ((100 - abs(zAxis)) * output_v[i]) + clock_v[i] + counter_v[i]
-        print(f"output_v {output_v}")
+        #print(f"output_v {output_v}")
         
         # format output vector
         for i in range(4):
