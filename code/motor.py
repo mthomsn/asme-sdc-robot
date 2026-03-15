@@ -1,33 +1,40 @@
 import RPi.GPIO as GPIO
 import time
 
-ENA = 18
-
-IN1 = 17
-IN2 = 27
+IN1 = 17 # motor pin 1
+IN2 = 27 # motor pin 2
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(ENA, GPIO.OUT)
 GPIO.setup(IN1, GPIO.OUT)
 GPIO.setup(IN2, GPIO.OUT)
 
-pwm = GPIO.PWM(ENA, 1000)
-pwm.start(0)
 
-def forward(speed):
+def right(speed):
     GPIO.output(IN1, GPIO.HIGH)
     GPIO.output(IN2, GPIO.LOW)
-    pwm.ChangeDutyCycle(speed)
 
-def backward(speed):
+def left(speed):
     GPIO.output(IN1, GPIO.LOW)
     GPIO.output(IN2, GPIO.HIGH)
-    pwm.ChangeDutyCycle(speed)
+
+def stop():
+    GPIO.output(IN1, GPIO.LOW)
+    GPIO.output(IN2, GPIO.LOW)
+
+def sort(item):
+    if item == 'trash':
+        right(100)
+        time.sleep(1)
+        stop()
+    if item == 'recycling':
+        left(100)
+        time.sleep(1)
+        stop()
+
+item1 = 'trash'
+item2 = 'recycling'
 
 while True:
-    forward(100)
-    time.sleep(5)
-    print("forward")
-    backward(100)
-    time.sleep(5)
-    print("backward")
+    sort(item1)
+    sort(item2)
+    break
