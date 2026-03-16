@@ -67,14 +67,14 @@ def isGreenRGB(r, g, b, c):
 
 def isBlueRGB(r, g, b, c):
     return (25 <= r <= 65) and \
-           (76 <= g <= 95) and \
+           (70 <= g <= 95) and \
            (110 <= b <= 170) and \
            (c >= 500)
 
 def isBlackRGB(r, g, b, c):
     return (58 <= r < 100) and \
-           (95 <= g <= 105) and \
-           (70 <= b <= 85) and \
+           (85 <= g <= 105) and \
+           (60 <= b <= 85) and \
            (200 <= c <= 800)
 
 def isGrayRGB(r, g, b, c):
