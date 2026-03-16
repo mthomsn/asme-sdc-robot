@@ -8,12 +8,14 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(IN1, GPIO.OUT)
 GPIO.setup(IN2, GPIO.OUT)
 
+item1 = 'trash'
+item2 = 'recycling'
 
-def right(speed):
+def right():
     GPIO.output(IN1, GPIO.HIGH)
     GPIO.output(IN2, GPIO.LOW)
 
-def left(speed):
+def left():
     GPIO.output(IN1, GPIO.LOW)
     GPIO.output(IN2, GPIO.HIGH)
 
@@ -23,16 +25,14 @@ def stop():
 
 def sort(item):
     if item == 'trash':
-        right(100)
+        right()
         time.sleep(1)
         stop()
     if item == 'recycling':
-        left(100)
+        left()
         time.sleep(1)
         stop()
 
-item1 = 'trash'
-item2 = 'recycling'
 
 while True:
     sort(item1)
