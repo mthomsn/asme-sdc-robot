@@ -110,30 +110,37 @@ while True:
     if object_detected(c):
 
         ratios = get_color_ratios(r, g, b, c)
+        r_ratio = ratios[0]
+        g_ratio = ratios[1]
+        b_ratio = ratios[2]
+        c_ratio = ratios[3]
 
-        print("R:", r, "G:", g, "B:", b, "C:", c)
+       #  print("R:", r, "G:", g, "B:", b, "C:", c)
             #   "Color:", color_name,
             #   "Type:", type_name)
         
-        if isRecyclable(ratios):
-            print("\t=> RECYCLABLE")
-            if isGreenRGB(ratios):
+        if isRecyclable(r_ratio, g_ratio, b_ratio, c_ratio):
+            print("R:", r, "G:", g, "B:", b, "C:", c, "RECYCLABLE")
+            if isGreenRGB(r_ratio, g_ratio, b_ratio, c_ratio):
                 print(" (GREEN)")
-            if isBlueRGB(ratios):
+            if isBlueRGB(r_ratio, g_ratio, b_ratio, c_ratio):
                 print(" (BLUE)")
 
-        elif isGarbage(ratios):
-            print("\t=> GARBAGE")
-            if isBlackRGB(ratios):
+        elif isGarbage(r_ratio, g_ratio, b_ratio, c_ratio):
+            print("R:", r, "G:", g, "B:", b, "C:", c, "GARBAGE")
+            if isBlackRGB(r_ratio, g_ratio, b_ratio, c_ratio):
                 print(" (BLACK)")
-            elif isGrayRGB(ratios):
+            elif isGrayRGB(r_ratio, g_ratio, b_ratio, c_ratio):
                 print(" (GRAY)")
-            elif isBrownRGB(ratios):
+            elif isBrownRGB(r_ratio, g_ratio, b_ratio, c_ratio):
                 print(" (BROWN)")
         
 
+        else:
+            print("UNKNOWN")
+
     else:
-        print("No object detected")
+        print("No object")
 
     
     time.sleep(0.7)
