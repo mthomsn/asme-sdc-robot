@@ -1,6 +1,38 @@
 import smbus
 import time
 import statistics
+import RPi.GPIO as GPIO
+
+mp1 = 17 #motor pin 1
+mp2 = 27 #motor pin 2
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(mp1, GPIO.OUT)
+GPIO.setup(mp2, GPIO.OUT)
+
+def right():
+    GPIO.output(mp1, GPIO.HIGH)
+    GPIO.output(mp2, GPIO.LOW)
+
+def left():
+    GPIO.output(mp1, GPIO.HIGH)
+    GPIO.output(mp2, GPIO.LOW)
+
+def stop():
+    GPIO.output(mp1, GPIO.LOW)
+    GPIO.output(mp2, GPIO.LOW)
+
+def sort(item):
+    if item == 'Trash':
+        right()
+        time.sleep(0.05)
+        left()
+        time.sleep(0.05)
+    if item == 'Recycle':
+        right()
+        time.sleep(0.05)
+        left()
+        time.sleep(0.05)
+    stop()
 
 bus = smbus.SMBus(1)
 TCS_ADDR = 0x29
@@ -18,6 +50,8 @@ BDATAL = 0x1A
 PON = 0x01
 AEN = 0x02
 AVALID = 0x01
+
+
 
 def write_register(reg, value):
     bus.write_byte_data(TCS_ADDR, COMMAND | reg, value)
@@ -160,6 +194,7 @@ def isRecyclable(r, g, b, c):
 def isGarbage(r, g, b, c):
     return isBlackRGB(r, g, b, c) or isGrayRGB(r, g, b, c) or isBrownRGB(r, g, b, c)
 
+
 try:
     init_sensor()
     print("Sensor workin")
@@ -183,6 +218,7 @@ try:
         )
 
         if isRecyclable(r, g, b, raw_c):
+            sort('Recycle')
             print("\t=> RECYCLABLE")
             if isGreenRGB(r, g, b, raw_c):
                 print(" (GREEN)")
@@ -190,6 +226,7 @@ try:
                 print(" (BLUE)")
 
         elif isGarbage(r, g, b, raw_c):
+            sort('Trash')
             print("\t=> GARBAGE")
             if isBlackRGB(r, g, b, raw_c):
                 print(" (BLACK)")
