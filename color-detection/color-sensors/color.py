@@ -200,9 +200,9 @@ try:
     print("Sensor workin")
 
     while True:
-        time.sleep(0.2)
+        #time.sleep(0.01)
 
-        raw_r, raw_g, raw_b, raw_c = get_averaged_data(samples=7, delay=0.02)
+        raw_r, raw_g, raw_b, raw_c = get_averaged_data(samples=7, delay=0.01)
 
         if raw_c < 250:
             print(f"R: 0\tG: 0\tB: 0\tC: {raw_c}\t=> EMPTY / TOO DARK")
