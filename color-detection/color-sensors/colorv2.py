@@ -17,7 +17,7 @@ BDATAL = 0x1A
 PON = 0x01
 AEN = 0x02
 
-PRESENCE_THRESHOLD = 150
+PRESENCE_THRESHOLD = 200
 
 
 def write_register(reg, value):
@@ -48,6 +48,7 @@ def get_rgb_values():
 
 
 def object_detected(c):
+    print(c)
     return c > PRESENCE_THRESHOLD
 
 
@@ -78,27 +79,34 @@ def get_type(name):
     else:
         return "Unknown"
 
+def colored(r, g, b, c):
+    colorave = r + g + b
+    print(colorave, "hello")
+    if colorave > c:
+        return True
+    else:
+        False
 
 def isGreenRGB(r_ratio, g_ratio, b_ratio, c_ratio):
-    return (g_ratio > r_ratio) and (g_ratio > b_ratio) and (g_ratio > 0.40)
+    return (g_ratio > r_ratio) and (g_ratio > b_ratio) and (b_ratio > r_ratio)
 
 def isBlueRGB(r_ratio, g_ratio, b_ratio, c_ratio):
-    return (b_ratio > r_ratio) and (b_ratio > g_ratio) and (b_ratio > 0.30)
+    return (b_ratio > r_ratio) and (b_ratio > g_ratio)
 
 def isBlackRGB(r_ratio, g_ratio, b_ratio, c_ratio):
-    return (r_ratio < c_ratio) and (g_ratio < c_ratio) and (b_ratio < c_ratio) and (c > 350)
+    return (r_ratio < c_ratio) and (g_ratio < c_ratio) and (b_ratio < c_ratio) and (g_ratio > r_ratio) and (b_ratio > r_ratio)
 
 def isGrayRGB(r_ratio, g_ratio, b_ratio, c_ratio):
-    return (r_ratio < c_ratio) and (g_ratio < c_ratio) and (b_ratio < c_ratio) and (1000 <= c <= 3000)
+    return (r_ratio < c_ratio) and (g_ratio < c_ratio) and (b_ratio < c_ratio) and (g_ratio > r_ratio) and (r_ratio > b_ratio)
 
 def isBrownRGB(r_ratio, g_ratio, b_ratio, c_ratio):
-    return (r_ratio < c_ratio) and (g_ratio < c_ratio) and (b_ratio < c_ratio) and (1600 <= c <= 2500)
+    return (r_ratio < c_ratio) and (g_ratio < c_ratio) and (b_ratio < c_ratio) and (r_ratio > b_ratio) and (r_ratio > g_ratio)
 
-def isRecyclable(r_ratio, g_ratio, b_ratio, c_ratio):
-    return isGreenRGB(r_ratio, g_ratio, b_ratio, c_ratio) or isBlueRGB(r_ratio, g_ratio, b_ratio, c_ratio)
+def isRecyclable(r_ratio, g_ratio, b_ratio, c_ratio, r, g, b, c):
+    return isGreenRGB(r_ratio, g_ratio, b_ratio, c_ratio, r, g, b, c) or isBlueRGB(r_ratio, g_ratio, b_ratio, c_ratio)
 
-def isGarbage(r_ratio, g_ratio, b_ratio, c_ratio):
-    return isBlackRGB(r_ratio, g_ratio, b_ratio, c_ratio) or isGrayRGB(r_ratio, g_ratio, b_ratio, c_ratio) or isBrownRGB(r_ratio, g_ratio, b_ratio, c_ratio)
+def isGarbage(r_ratio, g_ratio, b_ratio, c_ratio, r, g, b, c):
+    return isBlackRGB(r_ratio, g_ratio, b_ratio, c_ratio, r, g, b, c) or isGrayRGB(r_ratio, g_ratio, b_ratio, c_ratio) or isBrownRGB(r_ratio, g_ratio, b_ratio, c_ratio)
 
 init_sensor()
 
@@ -115,29 +123,52 @@ while True:
         b_ratio = ratios[2]
         c_ratio = ratios[3]
 
+        color = ''
+        type = ''
        #  print("R:", r, "G:", g, "B:", b, "C:", c)
             #   "Color:", color_name,
             #   "Type:", type_name)
-        
-        if isRecyclable(r_ratio, g_ratio, b_ratio, c_ratio):
-            print("R:", r, "G:", g, "B:", b, "C:", c, "RRatio: ", r_ratio, "GRatio: ", g_ratio, "BRatio: ", b_ratio, "CRatio: ", c_ratio, "RECYCLABLE")
-            if isGreenRGB(r_ratio, g_ratio, b_ratio, c_ratio):
-                print(" (GREEN)")
-            if isBlueRGB(r_ratio, g_ratio, b_ratio, c_ratio):
-                print(" (BLUE)")
 
-        elif isGarbage(r_ratio, g_ratio, b_ratio, c_ratio):
-            print("R:", r, "G:", g, "B:", b, "C:", c, "RRatio: ", r_ratio, "GRatio: ", g_ratio, "BRatio: ", b_ratio, "CRatio: ", c_ratio, "GARBAGE")
-            if isBlackRGB(r_ratio, g_ratio, b_ratio, c_ratio):
-                print(" (BLACK)")
-            elif isGrayRGB(r_ratio, g_ratio, b_ratio, c_ratio):
-                print(" (GRAY)")
-            elif isBrownRGB(r_ratio, g_ratio, b_ratio, c_ratio):
-                print(" (BROWN)")
+        print("R:", r, "G:", g, "B:", b, "C:", c, "RRatio: ", r_ratio, "GRatio: ", g_ratio, "BRatio: ", b_ratio, "CRatio: ", c_ratio, "Color: ", color, "Type: ", type)
+
+        if isGreenRGB(r_ratio, g_ratio, b_ratio, c_ratio) and isBlackRGB(r_ratio, g_ratio, b_ratio, c_ratio):
+            if colored(r, g, b, c):
+                color = 'Green'
+            else:
+                color = 'Black'
+        elif isBlueRGB(r_ratio, g_ratio, b_ratio, c_ratio):
+            color = 'Blue'
+        elif isBrownRGB(r_ratio, g_ratio, b_ratio, c_ratio):
+            color = 'Brown'
+        elif isGrayRGB(r_ratio, g_ratio, b_ratio, c_ratio):
+            color = 'Gray'
+        
+        if color == 'Green' or color == 'Blue':
+            type = 'Recycle'
+        elif color == 'Black' or color == 'Gray' or color == 'Brown':
+            type = 'Trash'
+        else: 
+            type = 'Unknown'
+
+        # if isRecyclable(r_ratio, g_ratio, b_ratio, c_ratio, r, g, b, c):
+        #     print("R:", r, "G:", g, "B:", b, "C:", c, "RRatio: ", r_ratio, "GRatio: ", g_ratio, "BRatio: ", b_ratio, "CRatio: ", c_ratio, "RECYCLABLE")
+        #     if isGreenRGB(r_ratio, g_ratio, b_ratio, c_ratio, r, g, b, c):
+        #         print(" (GREEN)")
+        #     if isBlueRGB(r_ratio, g_ratio, b_ratio, c_ratio):
+        #         print(" (BLUE)")
+
+        # elif isGarbage(r_ratio, g_ratio, b_ratio, c_ratio, r, g, b, c):
+        #     print("R:", r, "G:", g, "B:", b, "C:", c, "RRatio: ", r_ratio, "GRatio: ", g_ratio, "BRatio: ", b_ratio, "CRatio: ", c_ratio, "GARBAGE")
+        #     if isBlackRGB(r_ratio, g_ratio, b_ratio, c_ratio, r, g, b, c):
+        #         print(" (BLACK)")
+        #     elif isGrayRGB(r_ratio, g_ratio, b_ratio, c_ratio):
+        #         print(" (GRAY)")
+        #     elif isBrownRGB(r_ratio, g_ratio, b_ratio, c_ratio):
+        #         print(" (BROWN)")
         
 
-        else:
-            print("R:", r, "G:", g, "B:", b, "C:", c, "RRatio: ", r_ratio, "GRatio: ", g_ratio, "BRatio: ", b_ratio, "CRatio: ", c_ratio, "UNKNOWN")
+        # else:
+        #     print("R:", r, "G:", g, "B:", b, "C:", c, "RRatio: ", r_ratio, "GRatio: ", g_ratio, "BRatio: ", b_ratio, "CRatio: ", c_ratio, "UNKNOWN")
 
     else:
         print("No object")
