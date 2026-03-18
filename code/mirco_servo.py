@@ -17,33 +17,19 @@ def set_angle(angle):
     pwm.ChangeDutyCycle(0)
 
 try:
-    print("Servo control started")
-    print("Press 'a' to move left and 'd' to move right, 'q' to quite")
-    set_angle(angle)
+    print("Servo auto-started")
 
     while True:
-        key = input("Enter key: ").lower()
 
-        if key == "a":
-            angle -= 10
-            if angle < 0:
-                angle = 0
-            print(f"Angle: {angle}")
-            set_angle(angle)
+        set_angle(0)
+        time.sleep(1)
 
-        elif key == "d":
-            angle += 10
-            if angle > 180:
-                angle = 180
-            print(f"Angle: {angle}")
-            set_angle(angle)
+        set_angle(90)
+        time.sleep(1)
+
+        set_angle(180)
+        time.sleep(1)
         
-        elif key == "q":
-            print("Exiting Program")
-            break
-
-        else:
-            print("Invalid key. Use 'a', 'd', or 'q' ")
 
 
 
