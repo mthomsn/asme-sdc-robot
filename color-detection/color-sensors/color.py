@@ -14,8 +14,8 @@ def right():
     GPIO.output(mp2, GPIO.LOW)
 
 def left():
-    GPIO.output(mp1, GPIO.HIGH)
-    GPIO.output(mp2, GPIO.LOW)
+    GPIO.output(mp1, GPIO.LOW)
+    GPIO.output(mp2, GPIO.HIGH)
 
 def stop():
     GPIO.output(mp1, GPIO.LOW)
@@ -25,11 +25,7 @@ def sort(item):
     if item == 'Trash':
         right()
         time.sleep(0.05)
-        left()
-        time.sleep(0.05)
     if item == 'Recycle':
-        right()
-        time.sleep(0.05)
         left()
         time.sleep(0.05)
     stop()
