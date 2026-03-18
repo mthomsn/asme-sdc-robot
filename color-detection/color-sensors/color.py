@@ -158,11 +158,11 @@ def isBlackRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
 
     return (58 <= r <= 110) and \
-           (85 <= g <= 105) and \
-           (60 <= b <= 95) and \
+           (80 <= g <= 105) and \
+           (55 <= b <= 95) and \
            (200 <= c <= 1900) and \
-           (0.55 <= rg <= 1.15) and \
-           (0.60 <= rb <= 1.65)
+           (0.55 <= rg <= 1.30) and \
+           (0.60 <= rb <= 1.85)
 
 def isGrayRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
