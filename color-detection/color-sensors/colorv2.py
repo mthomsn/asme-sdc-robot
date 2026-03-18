@@ -87,13 +87,13 @@ def colored(r, g, b, c):
     else:
         False
 
-def isGreenRGB(r_ratio, g_ratio, b_ratio, c_ratio, r, g, b, c):
+def isGreenRGB(r_ratio, g_ratio, b_ratio, c_ratio):
     return (g_ratio > r_ratio) and (g_ratio > b_ratio) and (b_ratio > r_ratio)
 
 def isBlueRGB(r_ratio, g_ratio, b_ratio, c_ratio):
     return (b_ratio > r_ratio) and (b_ratio > g_ratio)
 
-def isBlackRGB(r_ratio, g_ratio, b_ratio, c_ratio, r, g, b, c):
+def isBlackRGB(r_ratio, g_ratio, b_ratio, c_ratio):
     return (r_ratio < c_ratio) and (g_ratio < c_ratio) and (b_ratio < c_ratio) and (g_ratio > r_ratio) and (b_ratio > r_ratio)
 
 def isGrayRGB(r_ratio, g_ratio, b_ratio, c_ratio):
@@ -123,29 +123,52 @@ while True:
         b_ratio = ratios[2]
         c_ratio = ratios[3]
 
+        color = ''
+        type = ''
        #  print("R:", r, "G:", g, "B:", b, "C:", c)
             #   "Color:", color_name,
             #   "Type:", type_name)
 
-        if isRecyclable(r_ratio, g_ratio, b_ratio, c_ratio, r, g, b, c):
-            print("R:", r, "G:", g, "B:", b, "C:", c, "RRatio: ", r_ratio, "GRatio: ", g_ratio, "BRatio: ", b_ratio, "CRatio: ", c_ratio, "RECYCLABLE")
-            if isGreenRGB(r_ratio, g_ratio, b_ratio, c_ratio, r, g, b, c):
-                print(" (GREEN)")
-            if isBlueRGB(r_ratio, g_ratio, b_ratio, c_ratio):
-                print(" (BLUE)")
+        print("R:", r, "G:", g, "B:", b, "C:", c, "RRatio: ", r_ratio, "GRatio: ", g_ratio, "BRatio: ", b_ratio, "CRatio: ", c_ratio, "Color: ", color, "Type: ", type)
 
-        elif isGarbage(r_ratio, g_ratio, b_ratio, c_ratio, r, g, b, c):
-            print("R:", r, "G:", g, "B:", b, "C:", c, "RRatio: ", r_ratio, "GRatio: ", g_ratio, "BRatio: ", b_ratio, "CRatio: ", c_ratio, "GARBAGE")
-            if isBlackRGB(r_ratio, g_ratio, b_ratio, c_ratio, r, g, b, c):
-                print(" (BLACK)")
-            elif isGrayRGB(r_ratio, g_ratio, b_ratio, c_ratio):
-                print(" (GRAY)")
-            elif isBrownRGB(r_ratio, g_ratio, b_ratio, c_ratio):
-                print(" (BROWN)")
+        if isGreenRGB(r_ratio, g_ratio, b_ratio, c_ratio) and isBlackRGB(r_ratio, g_ratio, b_ratio, c_ratio):
+            if colored(r, g, b, c):
+                color = 'Green'
+            else:
+                color = 'Black'
+        elif isBlueRGB(r_ratio, g_ratio, b_ratio, c_ratio):
+            color = 'Blue'
+        elif isBrownRGB(r_ratio, g_ratio, b_ratio, c_ratio):
+            color = 'Brown'
+        elif isGrayRGB(r_ratio, g_ratio, b_ratio, c_ratio):
+            color = 'Gray'
+        
+        if color == 'Green' or color == 'Blue':
+            type = 'Recycle'
+        elif color == 'Black' or color == 'Gray' or color == 'Brown':
+            type = 'Trash'
+        else: 
+            type = 'Unknown'
+
+        # if isRecyclable(r_ratio, g_ratio, b_ratio, c_ratio, r, g, b, c):
+        #     print("R:", r, "G:", g, "B:", b, "C:", c, "RRatio: ", r_ratio, "GRatio: ", g_ratio, "BRatio: ", b_ratio, "CRatio: ", c_ratio, "RECYCLABLE")
+        #     if isGreenRGB(r_ratio, g_ratio, b_ratio, c_ratio, r, g, b, c):
+        #         print(" (GREEN)")
+        #     if isBlueRGB(r_ratio, g_ratio, b_ratio, c_ratio):
+        #         print(" (BLUE)")
+
+        # elif isGarbage(r_ratio, g_ratio, b_ratio, c_ratio, r, g, b, c):
+        #     print("R:", r, "G:", g, "B:", b, "C:", c, "RRatio: ", r_ratio, "GRatio: ", g_ratio, "BRatio: ", b_ratio, "CRatio: ", c_ratio, "GARBAGE")
+        #     if isBlackRGB(r_ratio, g_ratio, b_ratio, c_ratio, r, g, b, c):
+        #         print(" (BLACK)")
+        #     elif isGrayRGB(r_ratio, g_ratio, b_ratio, c_ratio):
+        #         print(" (GRAY)")
+        #     elif isBrownRGB(r_ratio, g_ratio, b_ratio, c_ratio):
+        #         print(" (BROWN)")
         
 
-        else:
-            print("R:", r, "G:", g, "B:", b, "C:", c, "RRatio: ", r_ratio, "GRatio: ", g_ratio, "BRatio: ", b_ratio, "CRatio: ", c_ratio, "UNKNOWN")
+        # else:
+        #     print("R:", r, "G:", g, "B:", b, "C:", c, "RRatio: ", r_ratio, "GRatio: ", g_ratio, "BRatio: ", b_ratio, "CRatio: ", c_ratio, "UNKNOWN")
 
     else:
         print("No object")
