@@ -136,33 +136,33 @@ def isGreenRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
 
     return (42 <= r <= 90) and \
-           (110 <= g <= 155) and \
-           (45 <= b <= 70) and \
+           (105 <= g <= 155) and \
+           (45 <= b <= 80) and \
            (c >= 400) and \
            (rg >= 0.30 and rg <= 0.80) and \
-           (bg >= 0.30 and bg <= 0.65) and \
-           (gr >= 1.2)
+           (bg >= 0.30 and bg <= 0.85) and \
+           (gr >= 1.0)
 
 def isBlueRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
 
     return (25 <= r <= 65) and \
-           (70 <= g <= 95) and \
-           (110 <= b <= 170) and \
+           (70 <= g <= 100) and \
+           (90 <= b <= 170) and \
            (c >= 500) and \
-           (br >= 1.8) and \
-           (rb >= 0.20 and rb <= 0.55) and \
-           (gb >= 0.45 and gb <= 0.90)
+           (br >= 1.5) and \
+           (rb >= 0.20 and rb <= 0.70) and \
+           (gb >= 0.45 and gb <= 1.00)
 
 def isBlackRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
 
-    return (58 <= r <= 105) and \
+    return (58 <= r <= 110) and \
            (85 <= g <= 105) and \
-           (60 <= b <= 85) and \
+           (60 <= b <= 95) and \
            (200 <= c <= 1900) and \
-           (0.75 <= rg <= 1.15) and \
-           (0.70 <= rb <= 1.65)
+           (0.55 <= rg <= 1.15) and \
+           (0.60 <= rb <= 1.65)
 
 def isGrayRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
@@ -209,7 +209,8 @@ try:
 
         print(
             f"R: {r}\tG: {g}\tB: {b}\tC: {raw_c}"
-            f"\tRG: {rg:.2f}\tBG: {bg:.2f}\tRB: {rb:.2f}",
+            f"\tRG: {rg:.2f}\tBG: {bg:.2f}\tRB: {rb:.2f} \tBR: {br:.2f} \tGB: {gb:.2f} \tGR: {gr:.2f}"
+            f"\trawR: {raw_r} \trawG: {raw_g} \trawB: {raw_b} \trawC: {raw_c}",
             end=""
         )
 
