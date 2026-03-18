@@ -96,6 +96,9 @@ scale_max = 1.0
 scale_min = -1.0 
 analog_max = 32767
 analog_min = -32767
+
+
+
 # func to convert analog value range to range for pwm
 def convert_range(value):
     value = int(value)
@@ -123,11 +126,25 @@ def setPrecisionMode(state):
     else:
         scale_max = 1
         scale_min = -1
+        
+def stop_motors():
+    m1f.ChangeDutyCycle(0)
+    m2f.ChangeDutyCycle(0)
+    m3f.ChangeDutyCycle(0)
+    m4f.ChangeDutyCycle(0)
+    m1b.ChangeDutyCycle(0)
+    m2b.ChangeDutyCycle(0)
+    m3b.ChangeDutyCycle(0)
+    m4b.ChangeDutyCycle(0)
+    
+def split_line(line):
+     if len(splitLine) > 3:
+         return True
 
 print(f"Reading {device.name} ({device.path})")
 
 # variables for running jstest as subprocess in order to get data from controller
-cmd = "jstest /dev/input/js0"
+cmd = "jstest --event /dev/input/js0"
 process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
 
 # vectors for programing motors
@@ -168,7 +185,20 @@ output_v = [ 0, 0, 0, 0, 0, 0, 0, 0]
 currentBtnAState = "off"
 precisionMode = False
 
-while True:
+AXIS_X = 0
+AXIS_Y = 1
+AXIS_LT = 4
+AXIS_RT = 5
+
+axis_state = {
+    AXIS_X: 0,
+    AXIS_Y: 0,
+    AXIS_LT: -32767,
+    AXIS_RT: -32767
+}
+
+def start_motors():
+    global forward_v, backward_v, right_v, left_v, clock_v, counter_v, working_v, output_v
     # reset vectors for next reading
     forward_v = [ 1, 1, 1, 1, 0, 0, 0, 0]
     backward_v = [ 0, 0, 0, 0, 1, 1, 1, 1]
@@ -177,136 +207,167 @@ while True:
     clock_v = [ 1, 1, 0, 0, 0, 0, 1, 1]
     counter_v = [ 0, 0, 1, 1, 1, 1, 0, 0]
     
-    # using jstest to read input from controller:\s*(-?\d+)|(\d+):(on|off)
-    line = process.stdout.readline()
-    #print(f"jstest output: {line}")
-    
-    # breaking up line to array
-    splitLine = re.split(":\s*(-?\d+)", line)
-    buttonSplitLine = re.split("(\d+):(on|off)", line)
-    
-    # tracking button state
-    lastBtnAState = currentBtnAState
-    print(f"last btn state: {lastBtnAState}")
-    print(f"current btn state: {currentBtnAState}")
+
+        
+    xAxis_raw = axis_state[AXIS_X]
+    yAxis_raw = axis_state[AXIS_Y]
+    leftRead = axis_state[AXIS_LT]
+    rightRead = axis_state[AXIS_RT]
+
+    xAxis = convert_range(xAxis_raw)
+    yAxis = convert_range(yAxis_raw)
+    zAxis = convert_trigger(rightRead, leftRead)
     
     
+    if xAxis == 0 and yAxis == 0 and zAxis == 0:
+        stop_motors()
+        return
     
-    # error handling if no output
-    if not line:
-        break
-    # if we have data we will access data we need and convert to normal range
-    if len(splitLine) > 3:
-        #print(f"button split line: {buttonSplitLine}")
-        xAxis = splitLine[3] 
-        yAxis = splitLine[5]
-        rightRead = splitLine[11]   #Right Trigger
-        leftRead = splitLine[13]   #Left Trigger
-        currentBtnAState = buttonSplitLine[2]
-        
-        if (lastBtnAState == "on" and currentBtnAState == "off"):
-            print("btn pressed")
-            precisionMode = not precisionMode
-            setPrecisionMode(precisionMode)
-            print(f"scale max: {scale_max}")
-            print(f"scale min: {scale_min}")
-        
-        xAxis = convert_range(xAxis)
-        yAxis = convert_range(yAxis)
-        zAxis = convert_trigger(rightRead, leftRead)     
-        
-        #have to map to vector and use algo for clocksum
-        
-        #setting forward vector to yaxis vals
-        if (yAxis < 0):
-            for i in range(8):
-                forward_v[i] = (yAxis * forward_v[i])
-                backward_v[(i)] = 0
-            #print(f"forward_v {forward_v}")
-        elif (yAxis > 0):
-            for i in range(8):
-                backward_v[(i)] = (yAxis * backward_v[i])
-                forward_v[(i)] = 0
-        else:
-            for i in range(8):
-                backward_v[(i)] = 0
-                forward_v[(i)] = 0
-                
-        #setting lateral vector to xaxis vals        
-        if (xAxis > 0):
-            for i in range(8):
-                right_v[i] = (xAxis * right_v[i])
-                left_v[i] = 0
-        elif (xAxis < 0):
-            for i in range(8):
-                left_v[i] = (xAxis * left_v[i])
-                right_v[i] = 0
-            #print(f"left {left_v}")
-        else:
-            for i in range(8):
-                left_v[i] = 0
-                right_v[i] = 0
-                
-        #setting moment vector to trigger vals        
-        if (zAxis > 0):
-            for i in range(8):
-                clock_v[i] = (abs(zAxis) * clock_v[i])
-                counter_v[i] = 0
-        elif (zAxis < 0):
-            for i in range(8):
-                counter_v[i] = (abs(zAxis) * counter_v[i])
-                clock_v[i] = 0
-        else:
-            for i in range(8):
-                counter_v[i] = 0
-                clock_v[i] = 0
-        
-        # compute pythag vector
+    #have to map to vector and use algo for clocksum
+    
+    #setting forward vector to yaxis vals
+    if (yAxis < 0):
         for i in range(8):
-            forward_v[i] = (forward_v[i] * forward_v[i])
-            backward_v[i] = (backward_v[i] * backward_v[i])
-            right_v[i] = (right_v[i] * right_v[i])
-            left_v[i] = (left_v[i] * left_v[i])
-            #print(f"left {left_v}")
-            working_v[i] = math.sqrt(abs(forward_v[i]) + abs(backward_v[i]) + abs(left_v[i]) + abs(right_v[i]))
-        
-        # format output vector
-        for i in range(4):
-            if (working_v[i] > working_v[i+4]):
-                output_v[i] = working_v[i] - working_v[i+4]
-                output_v[i+4] = 0
-            else:
-                output_v[i+4] = working_v[i+4] - working_v[i]
-                output_v[i] = 0
-                
-        #Turn override for output vector
+            forward_v[i] = (yAxis * forward_v[i])
+            backward_v[(i)] = 0
+        #print(f"forward_v {forward_v}")
+    elif (yAxis > 0):
         for i in range(8):
-            output_v[i] = ((100 - abs(zAxis)) * output_v[i]) + clock_v[i] + counter_v[i]
-        #print(f"output_v {output_v}")
-        
-        # format output vector
-        for i in range(4):
-            if (output_v[i] > output_v[i+4]):
-                output_v[i] = output_v[i] - output_v[i+4]
-                output_v[i+4] = 0
-            else:
-                output_v[i+4] = output_v[i+4] - output_v[i]
-                output_v[i] = 0
-                
-        # range conversion not working entirely as intented, if there are values above 100, we set them to 100
-        for i in range(8):
-            if (output_v[i] > 100):
-                output_v[i] = 100
-                
-        # set motor values to value calculated
-        m1f.start(output_v[0])
-        m2f.start(output_v[1])
-        m3f.start(output_v[2])
-        m4f.start(output_v[3])
-        m1b.start(output_v[4])
-        m2b.start(output_v[5])
-        m3b.start(output_v[6])
-        m4b.start(output_v[7])
-        
+            backward_v[(i)] = (yAxis * backward_v[i])
+            forward_v[(i)] = 0
     else:
-        print(line.rstrip(), flush=True)
+        for i in range(8):
+            backward_v[(i)] = 0
+            forward_v[(i)] = 0
+            
+    #setting lateral vector to xaxis vals        
+    if (xAxis > 0):
+        for i in range(8):
+            right_v[i] = (xAxis * right_v[i])
+            left_v[i] = 0
+    elif (xAxis < 0):
+        for i in range(8):
+            left_v[i] = (xAxis * left_v[i])
+            right_v[i] = 0
+        #print(f"left {left_v}")
+    else:
+        for i in range(8):
+            left_v[i] = 0
+            right_v[i] = 0
+            
+    #setting moment vector to trigger vals        
+    if (zAxis > 0):
+        for i in range(8):
+            clock_v[i] = (abs(zAxis) * clock_v[i])
+            counter_v[i] = 0
+    elif (zAxis < 0):
+        for i in range(8):
+            counter_v[i] = (abs(zAxis) * counter_v[i])
+            clock_v[i] = 0
+    else:
+        for i in range(8):
+            counter_v[i] = 0
+            clock_v[i] = 0
+    
+    # compute pythag vector
+    for i in range(8):
+        forward_v[i] = (forward_v[i] * forward_v[i])
+        backward_v[i] = (backward_v[i] * backward_v[i])
+        right_v[i] = (right_v[i] * right_v[i])
+        left_v[i] = (left_v[i] * left_v[i])
+        #print(f"left {left_v}")
+        working_v[i] = math.sqrt(abs(forward_v[i]) + abs(backward_v[i]) + abs(left_v[i]) + abs(right_v[i]))
+    
+    # format output vector
+    for i in range(4):
+        if (working_v[i] > working_v[i+4]):
+            output_v[i] = working_v[i] - working_v[i+4]
+            output_v[i+4] = 0
+        else:
+            output_v[i+4] = working_v[i+4] - working_v[i]
+            output_v[i] = 0
+            
+    #Turn override for output vector
+    for i in range(8):
+        output_v[i] = ((100 - abs(zAxis)) * output_v[i]) + clock_v[i] + counter_v[i]
+    #print(f"output_v {output_v}")
+    
+    # format output vector
+    for i in range(4):
+        if (output_v[i] > output_v[i+4]):
+            output_v[i] = output_v[i] - output_v[i+4]
+            output_v[i+4] = 0
+        else:
+            output_v[i+4] = output_v[i+4] - output_v[i]
+            output_v[i] = 0
+            
+    # range conversion not working entirely as intented, if there are values above 100, we set them to 100
+    for i in range(8):
+        if (output_v[i] > 100):
+            output_v[i] = 100
+            
+    # set motor values to value calculated
+    m1f.ChangeDutyCycle(output_v[0])
+    m2f.ChangeDutyCycle(output_v[1])
+    m3f.ChangeDutyCycle(output_v[2])
+    m4f.ChangeDutyCycle(output_v[3])
+    m1b.ChangeDutyCycle(output_v[4])
+    m2b.ChangeDutyCycle(output_v[5])
+    m3b.ChangeDutyCycle(output_v[6])
+    m4b.ChangeDutyCycle(output_v[7])
+        
+
+
+try:
+    while True:
+        # using jstest to read input from controller:\s*(-?\d+)|(\d+):(on|off)
+        line = process.stdout.readline()
+        print(f"jstest output: {line}")
+        
+        
+        # error handling if no output
+        if not line:
+            break
+
+        line = line.strip()
+        print(line)
+
+        match = re.search(r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)", line)
+        print(match)
+
+        if not match:
+            continue
+
+        event_type = int(match.group(1))
+        number = int(match.group(2))
+        value = int(match.group(3))
+
+        if event_type == 2:
+            axis_state[number] = value
+            print("access")
+            start_motors()
+        else:
+            print(line.rstrip(), flush=True)
+            
+finally:
+    stop_motors()
+    try:
+        m1f.stop()
+        m2f.stop()
+        m3f.stop()
+        m4f.stop()
+        m1b.stop()
+        m2b.stop()
+        m3b.stop()
+        m4b.stop()
+        p1.stop()
+        p2.stop()
+    except:
+        pass
+
+    try:
+        process.terminate()
+    except:
+        pass
+
+    GPIO.cleanup()

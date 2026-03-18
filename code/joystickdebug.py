@@ -9,19 +9,13 @@ import math
 # ============================================
 # FINDING XBOX CONTROLLER 
 # ============================================
-p = subprocess.run(["lsinput"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-xboxLine = str(next((ln for ln in p.stdout.splitlines() if "xbox" in ln.lower()), "")).strip()
-print(xboxLine)
-event = xboxLine[0]
-print("xbox event is event number", event)
+
 
 left_x = 0 #axis 0 = left stick x
 left_y = 1 #axis 1 = left stick y
 right_x = 2 #axis 2 = right stick x
 right_y = 5 #axis 3 = right stick y
 
-#Use lsinput to check which event controller is associated with
-device = InputDevice('/dev/input/event5')
 
 # ============================================
 # MOTOR DRIVER SET UP
@@ -140,8 +134,6 @@ def stop_motors():
 def split_line(line):
      if len(splitLine) > 3:
          return True
-
-print(f"Reading {device.name} ({device.path})")
 
 # variables for running jstest as subprocess in order to get data from controller
 cmd = "jstest --event /dev/input/js0"
