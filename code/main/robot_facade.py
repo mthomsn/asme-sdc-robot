@@ -1,5 +1,12 @@
+import os
 import re 
 import subprocess
+import sys
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+CODE_DIR = os.path.dirname(CURRENT_DIR)
+if CODE_DIR not in sys.path:
+    sys.path.insert(0, CODE_DIR)
 
 import joystickdebug as drive
 import grabpull as grab
@@ -8,7 +15,7 @@ class DriveSubsystem:
     def handle_axis(self, number: int, value: int):
         if number in (drive.AXIS_X, drive.AXIS_Y, drive.AXIS_RT, drive.AXIS_LT):
             drive.axis_state[number] = value
-            drive.start_motors
+            drive.start_motors()
     
     def stop(self):
         drive.stop_motors()
@@ -22,7 +29,7 @@ class GrabberSystem:
     def handle_axis(self, number: int, value: int):
         if number == grab.AXIS_RIGHT_Y:
             grab.axis_state[grab.AXIS_RIGHT_Y] = value
-            grab.update_stepper
+            grab.update_stepper()
 
     def handle_button(self, number: int, value: int):
         if number == grab.BUTTON_LEFT and value == 1:
@@ -39,8 +46,8 @@ class GrabberSystem:
 
 class RobotFacade:
     EVENT_RE = re.compile(
-        r"type\s+(\d+),\s*time\s+\d+, \s+value\s+(-?\d+)"
-    )
+    r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)"
+ )
 
     def __init__(self):
         self.drive = DriveSubsystem()
@@ -49,7 +56,7 @@ class RobotFacade:
     
     def start_input(self):
         self.process = subprocess.Popen(
-            "jest --event /dev/input/js0",
+            "jstest --event /dev/input/js0",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             shell = True,
@@ -91,13 +98,7 @@ class RobotFacade:
         finally:
             self.shutdown()
 
-def main():
-    robot = RobotFacade()
-    robot.run()
 
-
-if __name__ == "__main__":
-    main()
 
         
 

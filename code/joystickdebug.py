@@ -134,7 +134,6 @@ def stop_motors():
 
 # variables for running jstest as subprocess in order to get data from controller
 cmd = "jstest --event /dev/input/js0"
-process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
 
 # vectors for programing motors
 forward_v = [ 1, 1, 1, 1, 0, 0, 0, 0]
@@ -307,59 +306,62 @@ def start_motors():
         
 
 
-try:
-    while True:
-        # using jstest to read input from controller:\s*(-?\d+)|(\d+):(on|off)
-        line = process.stdout.readline()
-        print(f"jstest output: {line}")
-        
-        
-        # error handling if no output
-        if not line:
-            break
-
-        line = line.strip()
-        print(line)
-
-        match = re.search(r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)", line)
-        print(match)
-
-        if not match:
-            continue
-
-        event_type = int(match.group(1))
-        number = int(match.group(2))
-        value = int(match.group(3))
-
-        if event_type == 2:
-            axis_state[number] = value
-            print("access")
-            start_motors()
-        else:
-            print(line.rstrip(), flush=True)
-            
-finally:
-    stop_motors()
+def run_debug_loop():
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
     try:
-        m1f.stop()
-        m2f.stop()
-        m3f.stop()
-        m4f.stop()
-        m1b.stop()
-        m2b.stop()
-        m3b.stop()
-        m4b.stop()
-        p1.stop()
-        p2.stop()
-    except:
-        pass
+        while True:
+            line = process.stdout.readline()
+            print(f"jstest output: {line}")
 
-    try:
-        process.terminate()
-    except:
-        pass
+            if not line:
+                break
 
-    GPIO.cleanup()
+            line = line.strip()
+            print(line)
+
+            match = re.search(r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)", line)
+            print(match)
+
+            if not match:
+                continue
+
+            event_type = int(match.group(1))
+            number = int(match.group(2))
+            value = int(match.group(3))
+
+            if event_type == 2:
+                axis_state[number] = value
+                print("access")
+                start_motors()
+            else:
+                print(line.rstrip(), flush=True)
+
+    finally:
+        stop_motors()
+        try:
+            m1f.stop()
+            m2f.stop()
+            m3f.stop()
+            m4f.stop()
+            m1b.stop()
+            m2b.stop()
+            m3b.stop()
+            m4b.stop()
+            p1.stop()
+            p2.stop()
+        except:
+            pass
+
+        try:
+            process.terminate()
+        except:
+            pass
+
+        GPIO.cleanup()
+
+
+if __name__ == "__main__":
+    run_debug_loop()
         
         
    

@@ -5,15 +5,15 @@ from time import sleep
 import re
 import select
 
-GPIO.setmode(GPIO.BOARD)
+GPIO.setmode(GPIO.BCM)
 
-controls = [29, 31, 33, 35]
+controls = [5, 6, 13, 19]
 
 for pin in controls:
     GPIO.setup(pin, GPIO.OUT)
     GPIO.output(pin, GPIO.LOW)
 
-SERVO_PIN = 18
+SERVO_PIN = 24
 GPIO.setup(SERVO_PIN, GPIO.OUT)
 servo = GPIO.PWM(SERVO_PIN, 50)
 servo.start(0)
@@ -83,13 +83,6 @@ def set_angle(angle):
     servo.ChangeDutyCycle(0)
 
 cmd = "jstest --event /dev/input/js0"
-process = subprocess.Popen(
-    cmd,
-    stdout=subprocess.PIPE,
-    stderr=subprocess.PIPE,
-    shell=True,
-    text=True
-)
 
 AXIS_RIGHT_Y = 3
 BUTTON_LEFT = 6
@@ -98,10 +91,6 @@ BUTTON_RIGHT = 7
 axis_state = {
     AXIS_RIGHT_Y: 0
 }
-
-button6 = 0
-button7 = 0
-angle = 0
 
 def update_stepper():
     yAxis_raw = axis_state[AXIS_RIGHT_Y]
@@ -122,60 +111,75 @@ def update_stepper():
 
     sleep(step_delay)
 
-set_angle(angle)
+def run_grabpull_loop():
+    button6 = 0
+    button7 = 0
+    angle = 0
+    process = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=True,
+        text=True
+    )
 
-try:
-    while True:
-        ready, _, _ = select.select([process.stdout], [], [], 0)
-
-        if ready:
-            line = process.stdout.readline()
-
-            if line:
-                line = line.strip()
-                print(f"jstest output: {line}")
-
-                match = re.search(r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)", line)
-
-                if match:
-                    event_type = int(match.group(1))
-                    number = int(match.group(2))
-                    value = int(match.group(3))
-
-                    if event_type == 2 and number in axis_state:
-                        axis_state[number] = value
-
-                    if event_type == 1 and number == BUTTON_LEFT:
-                        button6 = value
-
-                    if event_type == 1 and number == BUTTON_RIGHT:
-                        button7 = value
-
-        old_angle = angle
-
-        if button6 == 1:
-            angle -= 20
-        if button7 == 1:
-            angle += 20
-
-        if angle < 0:
-            angle = 0
-        if angle > 180:
-            angle = 180
-
-        if angle != old_angle:
-            set_angle(angle)
-
-        update_stepper()
-
-finally:
-    stop_motor()
-    servo.stop()
+    set_angle(angle)
 
     try:
-        process.terminate()
-    except:
-        pass
+        while True:
+            ready, _, _ = select.select([process.stdout], [], [], 0)
 
-    GPIO.cleanup()
-start_motor
+            if ready:
+                line = process.stdout.readline()
+
+                if line:
+                    line = line.strip()
+                    print(f"jstest output: {line}")
+
+                    match = re.search(r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)", line)
+
+                    if match:
+                        event_type = int(match.group(1))
+                        number = int(match.group(2))
+                        value = int(match.group(3))
+
+                        if event_type == 2 and number in axis_state:
+                            axis_state[number] = value
+
+                        if event_type == 1 and number == BUTTON_LEFT:
+                            button6 = value
+
+                        if event_type == 1 and number == BUTTON_RIGHT:
+                            button7 = value
+
+            old_angle = angle
+
+            if button6 == 1:
+                angle -= 20
+            if button7 == 1:
+                angle += 20
+
+            if angle < 0:
+                angle = 0
+            if angle > 180:
+                angle = 180
+
+            if angle != old_angle:
+                set_angle(angle)
+
+            update_stepper()
+
+    finally:
+        stop_motor()
+        servo.stop()
+
+        try:
+            process.terminate()
+        except:
+            pass
+
+        GPIO.cleanup()
+
+
+if __name__ == "__main__":
+    run_grabpull_loop()

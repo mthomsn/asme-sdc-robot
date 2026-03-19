@@ -1,5 +1,9 @@
+from robot_facade import RobotFacade
+
+
 def main():
-    print("meow")
+    robot = RobotFacade()
+    robot.run()
 
 if __name__ == "__main__":
     main()
