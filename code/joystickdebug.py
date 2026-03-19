@@ -131,9 +131,6 @@ def stop_motors():
     m3b.ChangeDutyCycle(0)
     m4b.ChangeDutyCycle(0)
     
-def split_line(line):
-     if len(splitLine) > 3:
-         return True
 
 # variables for running jstest as subprocess in order to get data from controller
 cmd = "jstest --event /dev/input/js0"

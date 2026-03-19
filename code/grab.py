@@ -9,10 +9,14 @@ import select
 GPIO.setmode(GPIO.BOARD)
 
 controls = [29, 31, 33, 35]
+servo = 18
 
 for pin in controls:
     GPIO.setup(pin, GPIO.OUT)
     GPIO.output(pin, GPIO.LOW)
+
+GPIO.setup(servo, GPIO.OUT)
+servo_move = GPIO.PWM(servo, 50)
 
 halfsteps = [
     [1, 0, 0, 0],
@@ -87,6 +91,11 @@ BUTTON_RIGHT = 7
 
 axis_state = {
     AXIS_RIGHT_Y: 0
+}
+
+button_state = {
+    BUTTON_LEFT: 0,
+    BUTTON_RIGHT: 0
 }
 
 def start_motor():
