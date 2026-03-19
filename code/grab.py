@@ -25,6 +25,13 @@ halfsteps = [
     [1, 0, 0, 1],
 ]
 
+fullsteps = [
+    [1, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 1, 0],
+    [0, 0, 0, 1],
+]
+
 current_step = 0
 
 scale_max = 1.0
@@ -45,24 +52,24 @@ def stop_motor():
 
 def set_step(step_index):
     for i in range(4):
-        GPIO.output(controls[i], halfsteps[step_index][i])
+        GPIO.output(controls[i], fullsteps[step_index][i])
 
 def step_clockwise():
     global current_step
     set_step(current_step)
-    current_step = (current_step + 1) % len(halfsteps)
+    current_step = (current_step + 1) % len(fullsteps)
 
 def step_counterclockwise():
     global current_step
     set_step(current_step)
-    current_step = (current_step - 1) % len(halfsteps)
+    current_step = (current_step - 1) % len(fullsteps)
 
 def get_step_delay(yAxis):
     speed = abs(yAxis)
     if speed > 1:
         speed = 1
-    step_delay_max = 0.008
-    step_delay_min = 0.0015
+    step_delay_max = 0.005
+    step_delay_min = 0.0008
     return step_delay_max - (speed * (step_delay_max - step_delay_min))
 
 cmd = "jstest --event /dev/input/js0"
@@ -75,6 +82,8 @@ process = subprocess.Popen(
 )
 
 AXIS_RIGHT_Y = 3
+BUTTON_LEFT = 6
+BUTTON_RIGHT = 7
 
 axis_state = {
     AXIS_RIGHT_Y: 0
@@ -88,14 +97,14 @@ def start_motor():
 
 
     if abs(yAxis) < deadzone:
-        stop_motor()
+        stop_motor() 
         return
 
     step_delay = get_step_delay(yAxis)
 
-    if yAxis < 0:
+    if yAxis <= 0:
         step_clockwise()
-    elif yAxis > 0:
+    elif yAxis >= 0:
         step_counterclockwise()
 
     sleep(step_delay)
