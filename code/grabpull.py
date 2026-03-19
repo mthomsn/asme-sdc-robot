@@ -58,20 +58,24 @@ def set_step(step_index):
     for i in range(4):
         GPIO.output(controls[i], fullsteps[step_index][i])
 
+
 def step_clockwise():
     global current_step
+    print(current_step, "clockwise")
     set_step(current_step)
     current_step = (current_step + 1) % len(fullsteps)
 
 def step_counterclockwise():
     global current_step
+    print(current_step, "counter")
     set_step(current_step)
     current_step = (current_step - 1) % len(fullsteps)
 
-def get_step_delay(yAxis):
-    speed = abs(yAxis)
+def get_step_delay(yAxis, yAxisL):
+    speed = abs(yAxis) + abs(yAxisL)
     if speed > 1:
         speed = 1
+    print(speed, "speed")
     step_delay_max = 0.005
     step_delay_min = 0.0008
     return step_delay_max - (speed * (step_delay_max - step_delay_min))
@@ -91,12 +95,15 @@ process = subprocess.Popen(
     text=True
 )
 
-AXIS_RIGHT_Y = 3
+AXIS_RIGHT_Y = 2
+AXIS_LEFT_Y = 3
+
 BUTTON_LEFT = 6
 BUTTON_RIGHT = 7
 
 axis_state = {
-    AXIS_RIGHT_Y: 0
+    AXIS_RIGHT_Y: 0,
+    AXIS_LEFT_Y: 0
 }
 
 button6 = 0
@@ -106,18 +113,38 @@ angle = 0
 def start_motor():
     yAxis_raw = axis_state[AXIS_RIGHT_Y]
     yAxis = convert_range(yAxis_raw)
-    print(yAxis)
+    yAxis_l_raw = axis_state[AXIS_LEFT_Y]
+    yAxisL = convert_range(yAxis_l_raw)
+    print(yAxis, "bruh")
+    print(yAxisL, "bruh pt2")
     deadzone = 0.1
+    #print(abs(yAxis), abs(yAxisL))
 
-    if abs(yAxis) < deadzone:
+    if abs(yAxis) < deadzone and abs(yAxisL) < deadzone:
         stop_motor()
         return
 
-    step_delay = get_step_delay(yAxis)
-
-    if yAxis <= 0:
+   # if yAxis == 0:
+       # yAxis == 1
+       # print("test")
+    #if abs(yAxis) < deadzone and abs(yAxis) != 0:
+        #stop_motor()
+        #return
+   # if yAxis == 0 and yAxisL == 0:
+       # stop_motor()
+       # return
+    #print(abs(yAxis), "hi")
+    #if yAxis == 0:
+        #stop_motor()
+        #return
+    if yAxis == 0 and yAxisL == 0:
+        stop_motors()
+    
+    step_delay = get_step_delay(yAxis, yAxisL)
+    print(yAxis, yAxisL, "LOOK")
+    if yAxisL <= 0:
         step_clockwise()
-    elif yAxis >= 0:
+    elif yAxisL >= 0:
         step_counterclockwise()
 
     sleep(step_delay)
@@ -150,6 +177,12 @@ try:
 
                     if event_type == 1 and number == BUTTON_RIGHT:
                         button7 = value
+
+            elif not line:
+                break
+            
+            if not line:
+                break
 
         old_angle = angle
 
