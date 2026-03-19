@@ -103,7 +103,7 @@ button6 = 0
 button7 = 0
 angle = 0
 
-def start_motor():
+def update_stepper():
     yAxis_raw = axis_state[AXIS_RIGHT_Y]
     yAxis = convert_range(yAxis_raw)
     print(yAxis)
@@ -166,7 +166,7 @@ try:
         if angle != old_angle:
             set_angle(angle)
 
-        start_motor()
+        update_stepper()
 
 finally:
     stop_motor()
@@ -178,3 +178,4 @@ finally:
         pass
 
     GPIO.cleanup()
+start_motor
