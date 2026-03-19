@@ -175,35 +175,36 @@ axis_state = {
     AXIS_RT: -32767
 }
 
+# this function does way more than just start the motors, need to break it up for readability
 def start_motors():
     global forward_v, backward_v, right_v, left_v, clock_v, counter_v, working_v, output_v
     # reset vectors for next reading
-    forward_v = [ 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]
-    backward_v = [ 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]
-    right_v = [ 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0]
-    left_v = [ 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0]
-    clock_v = [ 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0]
-    counter_v = [ 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0]
-
-
+    forward_v = [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]
+    backward_v = [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]
+    right_v = [1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0]
+    left_v = [0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0]
+    clock_v = [1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0]
+    counter_v = [0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0]
 
     xAxis_raw = axis_state[AXIS_X]
     yAxis_raw = axis_state[AXIS_Y]
     leftRead = axis_state[AXIS_LT]
     rightRead = axis_state[AXIS_RT]
 
+    deadzone = 10
+
     xAxis = convert_range(xAxis_raw)
     yAxis = convert_range(yAxis_raw)
     zAxis = convert_trigger(rightRead, leftRead)
 
-
-    if xAxis == 0.0 and yAxis == 0.0 and zAxis == 0.0:
+    # this deadzone check should fix our issue with motors continuing to move without input
+    if ((deadzone * -1) <= xAxis <= deadzone) and ((deadzone * -1) <= yAxis <= deadzone) and ((deadzone * -1) <= zAxis <= deadzone):
         stop_motors()
         return
 
-    #have to map to vector and use algo for clocksum
+    # have to map to vector and use algo for clocksum
 
-    #setting forward vector to yaxis vals
+    # setting forward vector to yaxis vals
     if (yAxis < 0.0):
         for i in range(8):
             forward_v[i] = (yAxis * forward_v[i])
@@ -258,11 +259,11 @@ def start_motors():
 
     # format output vector
     for i in range(4):
-        if (working_v[i] > working_v[i+4]):
-            output_v[i] = working_v[i] - working_v[i+4]
-            output_v[i+4] = 0
+        if (working_v[i] > working_v[i + 4]):
+            output_v[i] = working_v[i] - working_v[i + 4]
+            output_v[i + 4] = 0
         else:
-            output_v[i+4] = working_v[i+4] - working_v[i]
+            output_v[i + 4] = working_v[i + 4] - working_v[i]
             output_v[i] = 0
 
     #Turn override for output vector
@@ -287,52 +288,55 @@ def start_motors():
         # set motor values to calculated value
         motors[i].ChangeDutyCycle(output_v[i])
 
-
-try:
-    while True:
-        # using jstest to read input from controller:\s*(-?\d+)|(\d+):(on|off)
-        line = process.stdout.readline()
-        print(f"jstest output: {line}")
-
-
-        # error handling if no output
-        if not line:
-            break
-
-        line = line.strip()
-        print(line)
-
-        match = re.search(r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)", line)
-        print(match)
-
-        if not match:
-            continue
-
-        event_type = int(match.group(1))
-        number = int(match.group(2))
-        value = int(match.group(3))
-
-        if event_type == 2:
-            axis_state[number] = value
-            print("access")
-            start_motors()
-        else:
-            print(line.rstrip(), flush=True)
-
-finally:
-    stop_motors()
-
+def main():
     try:
-        for motor in motors:
-            motor.stop()
-        p1.stop()
-        p2.stop()
-    except:
-        pass
+        while True:
+            # using jstest to read input from controller:\s*(-?\d+)|(\d+):(on|off)
+            line = process.stdout.readline()
+            print(f"jstest output: {line}")
 
-    try:
-        process.terminate()
-    except:
-        pass
 
-    GPIO.cleanup()
+            # error handling if no output
+            if not line:
+                break
+
+            line = line.strip()
+            print(line)
+
+            match = re.search(r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)", line)
+            print(match)
+
+            if not match:
+                continue
+
+            event_type = int(match.group(1))
+            number = int(match.group(2))
+            value = int(match.group(3))
+
+            if event_type == 2:
+                axis_state[number] = value
+                print("access")
+                start_motors()
+            else:
+                print(line.rstrip(), flush=True)
+
+    finally:
+        stop_motors()
+
+        try:
+            for motor in motors:
+                motor.stop()
+            p1.stop()
+            p2.stop()
+        except:
+            pass
+
+        try:
+            process.terminate()
+        except:
+            pass
+
+        GPIO.cleanup()
+
+if __name__ == "__main__":
+    main()
