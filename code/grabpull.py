@@ -1,3 +1,4 @@
+from evdev import categorize, InputDevice, ecodes
 import subprocess
 import os, time
 import RPi.GPIO as GPIO
@@ -118,30 +119,17 @@ def start_motor():
     print(yAxis, "bruh")
     print(yAxisL, "bruh pt2")
     deadzone = 0.1
+    print(ecodes.EV_KEY)
     #print(abs(yAxis), abs(yAxisL))
-
+    print(InputDevice)
     if abs(yAxis) < deadzone and abs(yAxisL) < deadzone:
         stop_motor()
         return
 
-   # if yAxis == 0:
-       # yAxis == 1
-       # print("test")
-    #if abs(yAxis) < deadzone and abs(yAxis) != 0:
-        #stop_motor()
-        #return
-   # if yAxis == 0 and yAxisL == 0:
-       # stop_motor()
-       # return
-    #print(abs(yAxis), "hi")
-    #if yAxis == 0:
-        #stop_motor()
-        #return
     if yAxis == 0 and yAxisL == 0:
         stop_motors()
     
     step_delay = get_step_delay(yAxis, yAxisL)
-    print(yAxis, yAxisL, "LOOK")
     if yAxisL <= 0:
         step_clockwise()
     elif yAxisL >= 0:
@@ -157,32 +145,32 @@ try:
 
         if ready:
             line = process.stdout.readline()
+            #if line:
+            line = line.strip()
+            print(f"jstest output: {line}")
 
-            if line:
-                line = line.strip()
-                print(f"jstest output: {line}")
+            match = re.search(r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)", line)
 
-                match = re.search(r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)", line)
+            if match:
+                event_type = int(match.group(1))
+                number = int(match.group(2))
+                value = int(match.group(3))
 
-                if match:
-                    event_type = int(match.group(1))
-                    number = int(match.group(2))
-                    value = int(match.group(3))
+                if event_type == 2 and number in axis_state:
+                    axis_state[number] = value
+                    print("access")
 
-                    if event_type == 2 and number in axis_state:
-                        axis_state[number] = value
+                if event_type == 1 and number == BUTTON_LEFT:
+                    button6 = value
 
-                    if event_type == 1 and number == BUTTON_LEFT:
-                        button6 = value
+                if event_type == 1 and number == BUTTON_RIGHT:
+                    button7 = value
 
-                    if event_type == 1 and number == BUTTON_RIGHT:
-                        button7 = value
-
-            elif not line:
-                break
+           # elif not line:
+               # break
             
-            if not line:
-                break
+            #if not line:
+                #break
 
         old_angle = angle
 
