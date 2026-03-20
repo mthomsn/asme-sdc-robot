@@ -1,4 +1,14 @@
 Starting script executed at:
-2026-03-18 23:34:42
+2026-03-19 21:08:40
 Starting main.py
-meow
+Traceback (most recent call last):
+  File "/home/trash/SDC-UR-DC/code/main/main.py", line 1, in <module>
+    from robot_facade import RobotFacade
+  File "/home/trash/SDC-UR-DC/code/main/robot_facade.py", line 12, in <module>
+    import grabpull as grab
+  File "/home/trash/SDC-UR-DC/code/grabpull.py", line 18, in <module>
+    servo = GPIO.PWM(SERVO_PIN, 50)
+  File "/usr/lib/python3/dist-packages/RPi/GPIO/__init__.py", line 167, in __init__
+    raise RuntimeError(
+        'A PWM object already exists for this GPIO channel')
+RuntimeError: A PWM object already exists for this GPIO channel

@@ -2,14 +2,15 @@ import os
 import re 
 import subprocess
 import sys
+import joystickdebug as drive
+import grabpull as grab
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 CODE_DIR = os.path.dirname(CURRENT_DIR)
 if CODE_DIR not in sys.path:
     sys.path.insert(0, CODE_DIR)
 
-import joystickdebug as drive
-import grabpull as grab
+
 
 class DriveSubsystem:
     def handle_axis(self, number: int, value: int):
