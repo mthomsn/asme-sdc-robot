@@ -13,7 +13,7 @@ for pin in controls:
     GPIO.setup(pin, GPIO.OUT)
     GPIO.output(pin, GPIO.LOW)
 
-SERVO_PIN = 24
+SERVO_PIN = 18
 GPIO.setup(SERVO_PIN, GPIO.OUT)
 servo = GPIO.PWM(SERVO_PIN, 50)
 servo.start(0)
@@ -68,8 +68,8 @@ def step_counterclockwise():
     set_step(current_step)
     current_step = (current_step - 1) % len(fullsteps)
 
-def get_step_delay(yAxis):
-    speed = abs(yAxis)
+def get_step_delay(yAxis, yAxisL):
+    speed = abs(yAxis) + abs(yAxisL)
     if speed > 1:
         speed = 1
     step_delay_max = 0.005
@@ -84,30 +84,42 @@ def set_angle(angle):
 
 cmd = "jstest --event /dev/input/js0"
 
-AXIS_RIGHT_Y = 3
+AXIS_RIGHT_Y = 2
+AXIS_LEFT_Y = 3
 BUTTON_LEFT = 6
 BUTTON_RIGHT = 7
 
 axis_state = {
-    AXIS_RIGHT_Y: 0
+    AXIS_RIGHT_Y: 0,
+    AXIS_LEFT_Y: 0
 }
 
 def update_stepper():
     yAxis_raw = axis_state[AXIS_RIGHT_Y]
+    yAxis_l_raw = axis_state[AXIS_LEFT_Y]
     yAxis = convert_range(yAxis_raw)
+    yAxisL = convert_range(yAxis_l_raw)
     print(yAxis)
+    print(yAxisL)
     deadzone = 0.1
 
-    if abs(yAxis) < deadzone:
+    if abs(yAxis) < deadzone and abs(yAxisL) < deadzone:
         stop_motor()
         return
 
-    step_delay = get_step_delay(yAxis)
+    if yAxis == 0 and yAxisL == 0:
+        stop_motor()
+        return
 
-    if yAxis <= 0:
+    step_delay = get_step_delay(yAxis, yAxisL)
+
+    if yAxisL < -deadzone:
         step_clockwise()
-    elif yAxis >= 0:
+    elif yAxisL > deadzone:
         step_counterclockwise()
+    else:
+        stop_motor()
+        return
 
     sleep(step_delay)
 

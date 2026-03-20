@@ -28,8 +28,8 @@ class GrabberSystem:
         grab.set_angle(self.angle)
     
     def handle_axis(self, number: int, value: int):
-        if number == grab.AXIS_RIGHT_Y:
-            grab.axis_state[grab.AXIS_RIGHT_Y] = value
+        if number in (grab.AXIS_RIGHT_Y, grab.AXIS_LEFT_Y):
+            grab.axis_state[number] = value
             grab.update_stepper()
 
     def handle_button(self, number: int, value: int):
