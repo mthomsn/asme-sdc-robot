@@ -5,6 +5,7 @@ import RPi.GPIO as GPIO
 from time import sleep
 import re
 import select
+import threading
 
 GPIO.setmode(GPIO.BOARD)
 
@@ -38,6 +39,7 @@ fullsteps = [
 ]
 
 current_step = 0
+#last_step = 0
 
 scale_max = 1.0
 scale_min = -1.0
@@ -62,21 +64,25 @@ def set_step(step_index):
 
 def step_clockwise():
     global current_step
-    print(current_step, "clockwise")
+    #global last_step
+    #print(current_step, "clockwise")
     set_step(current_step)
     current_step = (current_step + 1) % len(fullsteps)
+    #last_step = current_step
 
 def step_counterclockwise():
     global current_step
-    print(current_step, "counter")
+    #global last_step
+    #print(current_step, "counter")
     set_step(current_step)
     current_step = (current_step - 1) % len(fullsteps)
+    #last_step = current_step
 
 def get_step_delay(yAxis, yAxisL):
     speed = abs(yAxis) + abs(yAxisL)
     if speed > 1:
         speed = 1
-    print(speed, "speed")
+   # print(speed, "speed")
     step_delay_max = 0.005
     step_delay_min = 0.0008
     return step_delay_max - (speed * (step_delay_max - step_delay_min))
@@ -119,15 +125,13 @@ def start_motor():
     print(yAxis, "bruh")
     print(yAxisL, "bruh pt2")
     deadzone = 0.1
-    print(ecodes.EV_KEY)
-    #print(abs(yAxis), abs(yAxisL))
-    print(InputDevice)
+
     if abs(yAxis) < deadzone and abs(yAxisL) < deadzone:
         stop_motor()
         return
 
     if yAxis == 0 and yAxisL == 0:
-        stop_motors()
+        stop_motor()
     
     step_delay = get_step_delay(yAxis, yAxisL)
     if yAxisL <= 0:
@@ -139,39 +143,57 @@ def start_motor():
 
 set_angle(angle)
 
+
 try:
     while True:
-        ready, _, _ = select.select([process.stdout], [], [], 0)
+        #ready, _, _ = select.select([process.stdout], [], [], 0)
 
-        if ready:
-            line = process.stdout.readline()
+        #if ready:
+        line = process.stdout.readline()
             #if line:
-            line = line.strip()
-            print(f"jstest output: {line}")
+        line = line.strip()
+        print(f"jstest output: {line}")
 
-            match = re.search(r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)", line)
+        if not line:
+            break
 
-            if match:
-                event_type = int(match.group(1))
-                number = int(match.group(2))
-                value = int(match.group(3))
+        match = re.search(r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)", line)
+                
+        if not match:
+            continue
 
-                if event_type == 2 and number in axis_state:
-                    axis_state[number] = value
-                    print("access")
+                #if match:
+        event_type = int(match.group(1))
+        number = int(match.group(2))
+        value = int(match.group(3))
+        
+        #print(value)
 
-                if event_type == 1 and number == BUTTON_LEFT:
-                    button6 = value
+        if event_type == 2 and number in axis_state:
+            axis_state[number] = value
+            print("access")
+            start_motor()
+            #val_store = value
+        if event_type == 1 and number == BUTTON_LEFT:
+            button6 = value
 
-                if event_type == 1 and number == BUTTON_RIGHT:
-                    button7 = value
+        if event_type == 1 and number == BUTTON_RIGHT:
+            button7 = value
+                    #if value == 0:
+                        #stop_motor()
+                        #break
 
-           # elif not line:
-               # break
-            
-            #if not line:
                 #break
+       # elif not line:
+           # break
+        
+        #if not line:
+            #break
+        #if current_step == last_step:
+        #if value != 0:
+        #start_motor()
 
+        #start_motor()
         old_angle = angle
 
         if button6 == 1:
@@ -187,7 +209,7 @@ try:
         if angle != old_angle:
             set_angle(angle)
 
-        start_motor()
+        #start_motor()
 
 finally:
     stop_motor()
