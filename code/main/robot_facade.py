@@ -25,23 +25,18 @@ class DriveSubsystem:
 class GrabberSystem:
     def __init__(self):
         self.angle = 0
-        grab.set_angle(self.angle)
+        grab.start_background_control(self.angle)
     
     def handle_axis(self, number: int, value: int):
         if number in (grab.AXIS_RIGHT_Y, grab.AXIS_LEFT_Y):
-            grab.axis_state[number] = value
-            grab.update_stepper()
+            grab.set_axis_value(number, value)
 
     def handle_button(self, number: int, value: int):
-        if number == grab.BUTTON_LEFT and value == 1:
-            self.angle = max(0, self.angle - 20)
-            grab.set_angle(self.angle)
-        elif number == grab.BUTTON_RIGHT and value == 1:
-            self.angle = min(180,self.angle + 20)
-            grab.set_angle(self.angle)
+        if number in (grab.BUTTON_LEFT, grab.BUTTON_RIGHT):
+            grab.set_button_value(number, value)
     
     def stop(self):
-        grab.stop_motor()
+        grab.stop_background_control()
         grab.servo.stop()
 
 
