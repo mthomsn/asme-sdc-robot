@@ -3,7 +3,7 @@ import os, time
 import RPi.GPIO as GPIO
 from time import sleep
 import re
-import select
+import threading
 
 GPIO.setmode(GPIO.BCM)
 
@@ -43,6 +43,20 @@ scale_min = -1.0
 analog_max = 32767
 analog_min = -32767
 
+running = False
+axis_lock = threading.Lock()
+button_lock = threading.Lock()
+angle_lock = threading.Lock()
+motor_thread = None
+servo_thread = None
+
+button_state = {
+    "left": 0,
+    "right": 0
+}
+
+angle = 0
+
 def convert_range(value):
     value = int(value)
     old_range = analog_max - analog_min
@@ -68,8 +82,8 @@ def step_counterclockwise():
     set_step(current_step)
     current_step = (current_step - 1) % len(fullsteps)
 
-def get_step_delay(yAxis):
-    speed = abs(yAxis)
+def get_step_delay(yAxis, yAxisL):
+    speed = abs(yAxis) + abs(yAxisL)
     if speed > 1:
         speed = 1
     step_delay_max = 0.005
@@ -79,84 +93,83 @@ def get_step_delay(yAxis):
 def set_angle(angle):
     duty = 2.5 + (angle / 18.0)
     servo.ChangeDutyCycle(duty)
-    sleep(0.1)
+    sleep(0.02)
     servo.ChangeDutyCycle(0)
 
 cmd = "jstest --event /dev/input/js0"
 
-AXIS_RIGHT_Y = 3
+AXIS_RIGHT_Y = 2
+AXIS_LEFT_Y = 3
 BUTTON_LEFT = 6
 BUTTON_RIGHT = 7
 
 axis_state = {
-    AXIS_RIGHT_Y: 0
+    AXIS_RIGHT_Y: 0,
+    AXIS_LEFT_Y: 0
 }
 
+def set_axis_value(number, value):
+    if number not in axis_state:
+        return
+    with axis_lock:
+        axis_state[number] = value
+
+def set_button_value(number, value):
+    if number == BUTTON_LEFT:
+        with button_lock:
+            button_state["left"] = value
+    elif number == BUTTON_RIGHT:
+        with button_lock:
+            button_state["right"] = value
+
 def update_stepper():
-    yAxis_raw = axis_state[AXIS_RIGHT_Y]
+    with axis_lock:
+        yAxis_raw = axis_state[AXIS_RIGHT_Y]
+        yAxis_l_raw = axis_state[AXIS_LEFT_Y]
+
     yAxis = convert_range(yAxis_raw)
-    print(yAxis)
+    yAxisL = convert_range(yAxis_l_raw)
     deadzone = 0.1
 
-    if abs(yAxis) < deadzone:
+    if abs(yAxis) < deadzone and abs(yAxisL) < deadzone:
         stop_motor()
+        sleep(0.01)
         return
 
-    step_delay = get_step_delay(yAxis)
+    if yAxis == 0 and yAxisL == 0:
+        stop_motor()
+        sleep(0.01)
+        return
 
-    if yAxis <= 0:
+    step_delay = get_step_delay(yAxis, yAxisL)
+
+    if yAxisL < -deadzone:
         step_clockwise()
-    elif yAxis >= 0:
+    elif yAxisL > deadzone:
         step_counterclockwise()
+    else:
+        stop_motor()
+        sleep(0.01)
+        return
 
     sleep(step_delay)
 
-def run_grabpull_loop():
-    button6 = 0
-    button7 = 0
-    angle = 0
-    process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        shell=True,
-        text=True
-    )
+def servo_worker():
+    global angle
 
-    set_angle(angle)
+    while running:
+        with button_lock:
+            left_pressed = button_state["left"]
+            right_pressed = button_state["right"]
 
-    try:
-        while True:
-            ready, _, _ = select.select([process.stdout], [], [], 0)
+        changed = False
 
-            if ready:
-                line = process.stdout.readline()
-
-                if line:
-                    line = line.strip()
-                    print(f"jstest output: {line}")
-
-                    match = re.search(r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)", line)
-
-                    if match:
-                        event_type = int(match.group(1))
-                        number = int(match.group(2))
-                        value = int(match.group(3))
-
-                        if event_type == 2 and number in axis_state:
-                            axis_state[number] = value
-
-                        if event_type == 1 and number == BUTTON_LEFT:
-                            button6 = value
-
-                        if event_type == 1 and number == BUTTON_RIGHT:
-                            button7 = value
-
+        with angle_lock:
             old_angle = angle
 
-            if button6 == 1:
+            if left_pressed == 1 and right_pressed != 1:
                 angle -= 20
-            if button7 == 1:
+            if right_pressed == 1 and left_pressed != 1:
                 angle += 20
 
             if angle < 0:
@@ -165,12 +178,97 @@ def run_grabpull_loop():
                 angle = 180
 
             if angle != old_angle:
-                set_angle(angle)
+                changed = True
+                current_angle = angle
 
-            update_stepper()
+        if changed:
+            set_angle(current_angle)
+            sleep(0.03)
+        else:
+            sleep(0.01)
+
+def stepper_worker():
+    while running:
+        update_stepper()
+
+def start_background_control(initial_angle=0):
+    global running
+    global angle
+    global motor_thread
+    global servo_thread
+
+    if running:
+        return
+
+    with axis_lock:
+        axis_state[AXIS_RIGHT_Y] = 0
+        axis_state[AXIS_LEFT_Y] = 0
+
+    with button_lock:
+        button_state["left"] = 0
+        button_state["right"] = 0
+
+    with angle_lock:
+        angle = max(0, min(180, int(initial_angle)))
+        current_angle = angle
+
+    set_angle(current_angle)
+
+    running = True
+    motor_thread = threading.Thread(target=stepper_worker, daemon=True)
+    servo_thread = threading.Thread(target=servo_worker, daemon=True)
+    motor_thread.start()
+    servo_thread.start()
+
+def stop_background_control():
+    global running
+
+    if not running:
+        stop_motor()
+        return
+
+    running = False
+    sleep(0.05)
+    stop_motor()
+
+def run_grabpull_loop():
+    start_background_control(initial_angle=0)
+
+    process = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=True,
+        text=True
+    )
+
+    try:
+        while True:
+            line = process.stdout.readline()
+
+            if not line:
+                break
+
+            line = line.strip()
+            print(f"jstest output: {line}")
+
+            match = re.search(r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)", line)
+
+            if not match:
+                continue
+
+            event_type = int(match.group(1))
+            number = int(match.group(2))
+            value = int(match.group(3))
+
+            if event_type == 2 and number in axis_state:
+                set_axis_value(number, value)
+
+            if event_type == 1 and number in (BUTTON_LEFT, BUTTON_RIGHT):
+                set_button_value(number, value)
 
     finally:
-        stop_motor()
+        stop_background_control()
         servo.stop()
 
         try:
