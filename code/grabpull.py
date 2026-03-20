@@ -46,6 +46,11 @@ scale_min = -1.0
 analog_max = 32767
 analog_min = -32767
 
+running = True
+axis_lock = threading.Lock()
+button_lock = threading.Lock()
+angle_lock = threading.Lock()
+
 def convert_range(value):
     value = int(value)
     old_range = analog_max - analog_min
@@ -60,7 +65,6 @@ def stop_motor():
 def set_step(step_index):
     for i in range(4):
         GPIO.output(controls[i], fullsteps[step_index][i])
-
 
 def step_clockwise():
     global current_step
@@ -90,7 +94,7 @@ def get_step_delay(yAxis, yAxisL):
 def set_angle(angle):
     duty = 2.5 + (angle / 18.0)
     servo.ChangeDutyCycle(duty)
-    sleep(0.1)
+    sleep(0.02)
     servo.ChangeDutyCycle(0)
 
 cmd = "jstest --event /dev/input/js0"
@@ -118,39 +122,89 @@ button7 = 0
 angle = 0
 
 def start_motor():
-    yAxis_raw = axis_state[AXIS_RIGHT_Y]
-    yAxis = convert_range(yAxis_raw)
-    yAxis_l_raw = axis_state[AXIS_LEFT_Y]
-    yAxisL = convert_range(yAxis_l_raw)
-    print(yAxis, "bruh")
-    print(yAxisL, "bruh pt2")
+    global running
+
     deadzone = 0.1
 
-    if abs(yAxis) < deadzone and abs(yAxisL) < deadzone:
-        stop_motor()
-        return
+    while running:
+        with axis_lock:
+            yAxis_raw = axis_state[AXIS_RIGHT_Y]
+            yAxis_l_raw = axis_state[AXIS_LEFT_Y]
 
-    if yAxis == 0 and yAxisL == 0:
-        stop_motor()
-    
-    step_delay = get_step_delay(yAxis, yAxisL)
-    if yAxisL <= 0:
-        step_clockwise()
-    elif yAxisL >= 0:
-        step_counterclockwise()
+        yAxis = convert_range(yAxis_raw)
+        yAxisL = convert_range(yAxis_l_raw)
 
-    sleep(step_delay)
+        print(yAxis, "bruh")
+        print(yAxisL, "bruh pt2")
+
+        if abs(yAxis) < deadzone and abs(yAxisL) < deadzone:
+            stop_motor()
+            sleep(0.01)
+            continue
+
+        if yAxis == 0 and yAxisL == 0:
+            stop_motor()
+            sleep(0.01)
+            continue
+
+        step_delay = get_step_delay(yAxis, yAxisL)
+
+        if yAxisL < -deadzone:
+            step_clockwise()
+        elif yAxisL > deadzone:
+            step_counterclockwise()
+        else:
+            stop_motor()
+            sleep(0.01)
+            continue
+
+        sleep(step_delay)
+
+def start_servo():
+    global running
+    global angle
+
+    while running:
+        with button_lock:
+            left_pressed = button6
+            right_pressed = button7
+
+        changed = False
+
+        with angle_lock:
+            old_angle = angle
+
+            if left_pressed == 1 and right_pressed != 1:
+                angle -= 20
+            if right_pressed == 1 and left_pressed != 1:
+                angle += 20
+
+            if angle < 0:
+                angle = 0
+            if angle > 180:
+                angle = 180
+
+            if angle != old_angle:
+                changed = True
+                current_angle = angle
+
+        if changed:
+            set_angle(current_angle)
+            sleep(0.03)
+        else:
+            sleep(0.01)
 
 set_angle(angle)
 
+motor_thread = threading.Thread(target=start_motor, daemon=True)
+servo_thread = threading.Thread(target=start_servo, daemon=True)
+
+motor_thread.start()
+servo_thread.start()
 
 try:
     while True:
-        #ready, _, _ = select.select([process.stdout], [], [], 0)
-
-        #if ready:
         line = process.stdout.readline()
-            #if line:
         line = line.strip()
         print(f"jstest output: {line}")
 
@@ -158,27 +212,30 @@ try:
             break
 
         match = re.search(r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)", line)
-                
+
         if not match:
             continue
 
-                #if match:
         event_type = int(match.group(1))
         number = int(match.group(2))
         value = int(match.group(3))
-        
+
         #print(value)
 
         if event_type == 2 and number in axis_state:
-            axis_state[number] = value
+            with axis_lock:
+                axis_state[number] = value
             print("access")
-            start_motor()
+            #start_motor()
             #val_store = value
+
         if event_type == 1 and number == BUTTON_LEFT:
-            button6 = value
+            with button_lock:
+                button6 = value
 
         if event_type == 1 and number == BUTTON_RIGHT:
-            button7 = value
+            with button_lock:
+                button7 = value
                     #if value == 0:
                         #stop_motor()
                         #break
@@ -194,24 +251,11 @@ try:
         #start_motor()
 
         #start_motor()
-        old_angle = angle
-
-        if button6 == 1:
-            angle -= 20
-        if button7 == 1:
-            angle += 20
-
-        if angle < 0:
-            angle = 0
-        if angle > 180:
-            angle = 180
-
-        if angle != old_angle:
-            set_angle(angle)
-
-        #start_motor()
 
 finally:
+    running = False
+    sleep(0.05)
+
     stop_motor()
     servo.stop()
 
