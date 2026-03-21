@@ -43,12 +43,11 @@ scale_min = -1.0
 analog_max = 32767
 analog_min = -32767
 
-running = False
+running = True
 axis_lock = threading.Lock()
 button_lock = threading.Lock()
 angle_lock = threading.Lock()
-motor_thread = None
-servo_thread = None
+
 
 button_state = {
     "left": 0,
@@ -123,39 +122,42 @@ def set_button_value(number, value):
             button_state["right"] = value
 
 def update_stepper():
-    with axis_lock:
-        yAxis_raw = axis_state[AXIS_RIGHT_Y]
-        yAxis_l_raw = axis_state[AXIS_LEFT_Y]
+    global running
+    while running:
+        with axis_lock:
+            yAxis_raw = axis_state[AXIS_RIGHT_Y]
+            yAxis_l_raw = axis_state[AXIS_LEFT_Y]
 
-    yAxis = convert_range(yAxis_raw)
-    yAxisL = convert_range(yAxis_l_raw)
-    deadzone = 0.1
+        yAxis = convert_range(yAxis_raw)
+        yAxisL = convert_range(yAxis_l_raw)
+        deadzone = 0.1
 
-    if abs(yAxis) < deadzone and abs(yAxisL) < deadzone:
-        stop_motor()
-        sleep(0.01)
-        return
+        if abs(yAxis) < deadzone and abs(yAxisL) < deadzone:
+            stop_motor()
+            sleep(0.01)
+            return
 
-    if yAxis == 0 and yAxisL == 0:
-        stop_motor()
-        sleep(0.01)
-        return
+        if yAxis == 0 and yAxisL == 0:
+            stop_motor()
+            sleep(0.01)
+            return
 
-    step_delay = get_step_delay(yAxis, yAxisL)
+        step_delay = get_step_delay(yAxis, yAxisL)
 
-    if yAxisL < -deadzone:
-        step_clockwise()
-    elif yAxisL > deadzone:
-        step_counterclockwise()
-    else:
-        stop_motor()
-        sleep(0.01)
-        return
+        if yAxisL < -deadzone:
+            step_clockwise()
+        elif yAxisL > deadzone:
+            step_counterclockwise()
+        else:
+            stop_motor()
+            sleep(0.01)
+            return
 
     sleep(step_delay)
 
 def servo_worker():
     global angle
+    global running
 
     while running:
         with button_lock:
@@ -194,8 +196,6 @@ def stepper_worker():
 def start_background_control(initial_angle=0):
     global running
     global angle
-    global motor_thread
-    global servo_thread
 
     if running:
         return
@@ -214,7 +214,7 @@ def start_background_control(initial_angle=0):
 
     set_angle(current_angle)
 
-    running = True
+   
     motor_thread = threading.Thread(target=stepper_worker, daemon=True)
     servo_thread = threading.Thread(target=servo_worker, daemon=True)
     motor_thread.start()
