@@ -21,6 +21,7 @@ def stop():
     GPIO.output(mp1, GPIO.LOW)
     GPIO.output(mp2, GPIO.LOW)
 
+
 def sort(item):
     if item == 'Trash':
         right()
@@ -28,6 +29,9 @@ def sort(item):
     if item == 'Recycle':
         left()
         time.sleep(0.05)
+    if item == 'Flap':
+        right()
+        time.sleep(0.01)
     stop()
 
 bus = smbus.SMBus(1)
@@ -190,6 +194,15 @@ def isRecyclable(r, g, b, c):
 def isGarbage(r, g, b, c):
     return isBlackRGB(r, g, b, c) or isGrayRGB(r, g, b, c) or isBrownRGB(r, g, b, c)
 
+def isFlap(r, g, b, c):
+    rb, bg, rb, br, gb, gr = get_ratios(r, g, b)
+
+    return (145 <= r <= 155) and \
+           (50 <= g <= 60) and \
+           (30 <= b <= 40) and \
+           (2000 <= c) and \
+           (2.60 <= rg <= 2.70) and \
+           (3.00 <= rb <= 4.00)
 
 try:
     init_sensor()
@@ -231,6 +244,9 @@ try:
                 print(" (GRAY)")
             elif isBrownRGB(r, g, b, raw_c):
                 print(" (BROWN)")
+        elif isFlap(r, g, b, raw_c):
+            sort('Flap')
+
         else:
             print("\t=> EMPTY / UNKNOWN")
 
