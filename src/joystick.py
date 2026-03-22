@@ -5,10 +5,6 @@ from time import sleep
 import re
 import math
 
-# ============================================
-# FINDING XBOX CONTROLLER 
-# ============================================
-
 
 left_x = 0 #axis 0 = left stick x
 left_y = 1 #axis 1 = left stick y
@@ -134,6 +130,7 @@ def stop_motors():
 # variables for running jstest as subprocess in order to get data from controller
 cmd = "jstest --event /dev/input/js0"
 process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+time.sleep(1)
 
 # vectors for programing motors
 forward_v = [ 1, 1, 1, 1, 0, 0, 0, 0]
@@ -317,10 +314,8 @@ try:
         if not line:
             break
 
-        line = line.strip()
-        print(line)
-
-        match = re.search(r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)", line)
+        match = re.search(r"type\s+(\d+),.*number\s+(\d+),\s+value\s+(-?\d+)", line)
+        #match = re.search(r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)", line)
         print(match)
 
         if not match:
