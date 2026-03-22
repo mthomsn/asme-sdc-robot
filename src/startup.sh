@@ -1,32 +1,37 @@
 #!/bin/bash
 
-MACS=("28:EA:0B:DB:97:12" "40:8E:2C:34:8E:5A" "14:CB:65:F5:32:DC")
+MAC=$CONTROLLER_MAC
 
 powered() {
 	echo "show" | bluetoothctl show | grep "Powered" | awk '{print $2}'
 }
 
 connected() {
-	bluetoothctl info "$1" | grep "Connected" | awk '{print $2}'
+	bluetoothctl info "$MAC" | grep "Connected" | awk '{print $2}'
 }
 
 echo "connecting to controller..."
 
 while true; do
 	if [ "$(powered)" = "yes" ]; then
+		if [ "$(connected)" = "yes" ]; then
+			echo "controller  connected..."
+			break
+		else
+			echo "not connected"
+			echo "attempting to connect to controller..."
+			echo "connect $MAC" | bluetoothctl
+			sleep 3
+		fi
 
-		for ADDR in "${MACS[@]}"; do
-			if [ "$(connected "$ADDR")" = "yes" ]; then
-				echo "controller $ADDR is connected"
-				break 2
-			fi
-
-			echo "trying $ADDR"
-			echo "connect $ADDR" | bluetoothctl
-		done
 	fi
 
-	sleep 2
 done
 
-python ~/SDC-UR-DC/src/joystick.py
+echo "starting robot in..."
+for i in 5 4 3 2 1; do 
+	echo $i
+	sleep 1
+done
+
+python home/zero/SDC-UR-DC/src/joystick.py
