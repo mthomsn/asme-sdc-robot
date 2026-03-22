@@ -31,7 +31,7 @@ def sort(item):
         time.sleep(0.05)
     if item == 'Flap':
         right()
-        time.sleep(0.01)
+        time.sleep(0.03)
     stop()
 
 bus = smbus.SMBus(1)
@@ -197,12 +197,12 @@ def isGarbage(r, g, b, c):
 def isFlap(r, g, b, c):
     rb, bg, rb, br, gb, gr = get_ratios(r, g, b)
 
-    return (145 <= r <= 155) and \
+    return (145 <= r <= 170) and \
            (50 <= g <= 60) and \
            (30 <= b <= 40) and \
-           (2000 <= c) and \
-           (2.60 <= rg <= 2.70) and \
-           (3.00 <= rb <= 4.00)
+           (500 <= c) and \
+           (2.60 <= rg <= 3.50) and \
+           (3.00 <= rb <= 6.00)
 
 try:
     init_sensor()
@@ -246,6 +246,8 @@ try:
                 print(" (BROWN)")
         elif isFlap(r, g, b, raw_c):
             sort('Flap')
+            print(" (RED FLAP)")
+            
 
         else:
             print("\t=> EMPTY / UNKNOWN")
