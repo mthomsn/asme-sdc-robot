@@ -1,30 +1,32 @@
 #!/bin/bash
 
-RED_MAC="28:EA:0B:DB:97:12"
+MACS=("28:EA:0B:DB:97:12" "40:8E:2C:34:8E:5A" "14:CB:65:F5:32:DC")
 
 powered() {
 	echo "show" | bluetoothctl show | grep "Powered" | awk '{print $2}'
 }
 
 connected() {
-	echo "show ${RED_MAC}" | bluetoothctl info "$RED_MAC" | grep  "Connected" | awk '{print $2}'
+	bluetoothctl info "$1" | grep "Connected" | awk '{print $2}'
 }
 
-while true; do
-	IS_POWERED=$(powered)
-	IS_CONNECTED=$(connected)
+echo "connecting to controller..."
 
-	if [ "$IS_POWERED" = "yes" ]; then
-		if [ "$IS_CONNECTED" = "yes" ]; then
-			echo "connected RED controller"
-			break
-		else
-			echo "attempting connection..."
-			echo "connect $RED_MAC" | bluetoothctl
-			sleep 5
-		fi
+while true; do
+	if [ "$(powered)" = "yes" ]; then
+
+		for ADDR in "${MACS[@]}"; do
+			if [ "$(connected "$ADDR")" = "yes" ]; then
+				echo "controller $ADDR is connected"
+				break 2
+			fi
+
+			echo "trying $ADDR"
+			echo "connect $ADDR" | bluetoothctl
+		done
 	fi
-	sleep 1
+
+	sleep 2
 done
 
 python ~/SDC-UR-DC/src/joystick.py
