@@ -6,9 +6,9 @@ import re
 import select
 import threading
 
-GPIO.setmode(GPIO.BOARD)
+GPIO.setmode(GPIO.BCM)
 
-controls = [29, 31, 33, 35]
+controls = [5, 6, 4, 19]
 
 for pin in controls:
     GPIO.setup(pin, GPIO.OUT)
