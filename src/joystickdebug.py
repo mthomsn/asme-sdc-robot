@@ -1,4 +1,3 @@
-from evdev import categorize, InputDevice, ecodes
 import subprocess
 import os, time
 import RPi.GPIO as GPIO
