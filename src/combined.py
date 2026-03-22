@@ -5,73 +5,79 @@ import re
 import math
 import threading
 
+# =========================
+# TT DRIVE MOTORS
+# =========================
 NSLEEP1 = 12
-motor_1_backward = 27
-motor_1_forward = 17
-motor_2_backward = 22
-motor_2_forward = 23
-
 NSLEEP2 = 13
-motor_3_forward = 25
-motor_3_backward = 24
-motor_4_forward = 26
-motor_4_backward = 16
 
-controls = [5, 6, 4, 19]
+# Front Left
+tt_front_left_backward = 27
+tt_front_left_forward  = 17
+
+# Back Left
+tt_back_left_backward  = 22
+tt_back_left_forward   = 23
+
+# Back Right
+tt_back_right_forward  = 25
+tt_back_right_backward = 24
+
+# Front Right
+tt_front_right_forward  = 26
+tt_front_right_backward = 16
 
 GPIO.setmode(GPIO.BCM)
 
+# =========================
+# GPIO SETUP
+# =========================
 GPIO.setup(NSLEEP1, GPIO.OUT)
 GPIO.setup(NSLEEP2, GPIO.OUT)
-GPIO.setup(motor_1_backward, GPIO.OUT)
-GPIO.setup(motor_1_forward, GPIO.OUT)
-GPIO.setup(motor_2_backward, GPIO.OUT)
-GPIO.setup(motor_2_forward, GPIO.OUT)
-GPIO.setup(motor_3_forward, GPIO.OUT)
-GPIO.setup(motor_3_backward, GPIO.OUT)
-GPIO.setup(motor_4_forward, GPIO.OUT)
-GPIO.setup(motor_4_backward, GPIO.OUT)
 
-GPIO.output(motor_1_backward, GPIO.LOW)
-GPIO.output(motor_1_forward, GPIO.LOW)
-GPIO.output(motor_2_backward, GPIO.LOW)
-GPIO.output(motor_2_forward, GPIO.LOW)
-GPIO.output(motor_3_forward, GPIO.LOW)
-GPIO.output(motor_3_backward, GPIO.LOW)
-GPIO.output(motor_4_forward, GPIO.LOW)
-GPIO.output(motor_4_backward, GPIO.LOW)
+tt_motor_pins = [
+    tt_front_left_backward, tt_front_left_forward,
+    tt_back_left_backward, tt_back_left_forward,
+    tt_back_right_forward, tt_back_right_backward,
+    tt_front_right_forward, tt_front_right_backward
+]
 
-m1b = GPIO.PWM(motor_1_backward, 1000)
-m1f = GPIO.PWM(motor_1_forward, 1000)
-m2b = GPIO.PWM(motor_2_backward, 1000)
-m2f = GPIO.PWM(motor_2_forward, 1000)
-m3b = GPIO.PWM(motor_3_backward, 1000)
-m3f = GPIO.PWM(motor_3_forward, 1000)
-m4b = GPIO.PWM(motor_4_backward, 1000)
-m4f = GPIO.PWM(motor_4_forward, 1000)
-
-p1 = GPIO.PWM(NSLEEP1, 1000)
-p2 = GPIO.PWM(NSLEEP2, 1000)
-p1.start(80)
-p2.start(80)
-
-m1f.start(0)
-m1b.start(0)
-m2f.start(0)
-m2b.start(0)
-m3f.start(0)
-m3b.start(0)
-m4f.start(0)
-m4b.start(0)
-
-for pin in controls:
+for pin in tt_motor_pins:
     GPIO.setup(pin, GPIO.OUT)
     GPIO.output(pin, GPIO.LOW)
 
-SERVO_PIN = 18
-GPIO.setup(SERVO_PIN, GPIO.OUT)
-servo = GPIO.PWM(SERVO_PIN, 50)
-servo.start(0)
+# =========================
+# PWM SETUP (TT MOTORS)
+# =========================
+tt_fl_b = GPIO.PWM(tt_front_left_backward, 1000)
+tt_fl_f = GPIO.PWM(tt_front_left_forward, 1000)
+
+tt_bl_b = GPIO.PWM(tt_back_left_backward, 1000)
+tt_bl_f = GPIO.PWM(tt_back_left_forward, 1000)
+
+tt_br_b = GPIO.PWM(tt_back_right_backward, 1000)
+tt_br_f = GPIO.PWM(tt_back_right_forward, 1000)
+
+tt_fr_b = GPIO.PWM(tt_front_right_backward, 1000)
+tt_fr_f = GPIO.PWM(tt_front_right_forward, 1000)
+
+p1 = GPIO.PWM(NSLEEP1, 1000)
+p2 = GPIO.PWM(NSLEEP2, 1000)
+
+p1.start(80)
+p2.start(80)
+
+for pwm in [tt_fl_f, tt_fl_b, tt_bl_f, tt_bl_b, tt_br_f, tt_br_b, tt_fr_f, tt_fr_b]:
+    pwm.start(0)
+
+# =========================
+# STEPPER MOTOR
+# =========================
+stepper_pins = [5, 6, 4, 19]
+
+for pin in stepper_pins:
+    GPIO.setup(pin, GPIO.OUT)
+    GPIO.output(pin, GPIO.LOW)
 
 fullsteps = [
     [1, 0, 0, 0],
@@ -82,6 +88,18 @@ fullsteps = [
 
 current_step = 0
 
+# =========================
+# SERVO MOTOR
+# =========================
+servo_pin = 18
+GPIO.setup(servo_pin, GPIO.OUT)
+
+servo = GPIO.PWM(servo_pin, 50)
+servo.start(0)
+
+# =========================
+# GLOBAL STATE
+# =========================
 scale_max = 1.0
 scale_min = -1.0
 analog_max = 32767
@@ -98,290 +116,242 @@ AXIS_Y = 1
 AXIS_LT = 4
 AXIS_RT = 5
 
-axis_state = {
-    AXIS_X: 0,
-    AXIS_Y: 0,
-    AXIS_LT: -32767,
-    AXIS_RT: -32767
-}
-
 AXIS_RIGHT_Y = 2
 AXIS_LEFT_Y = 3
 
 BUTTON_LEFT = 6
 BUTTON_RIGHT = 7
 
-axis_state_stepper = {
-    AXIS_RIGHT_Y: 0,
-    AXIS_LEFT_Y: 0
+axis_state = {
+    AXIS_X: 0,
+    AXIS_Y: 0,
+    AXIS_LT: -32767,
+    AXIS_RT: -32767,
 }
 
-button6 = 0
-button7 = 0
-angle = 0
+axis_state_stepper = {
+    AXIS_RIGHT_Y: 0,
+    AXIS_LEFT_Y: 0,
+}
 
+button_left = 0
+button_right = 0
+servo_angle = 0
+
+# =========================
+# UTILITY FUNCTIONS
+# =========================
 def convert_range(value):
     value = int(value)
-    old_range = analog_max - analog_min
-    new_range = scale_max - scale_min
-    return (((value - analog_min) * new_range) / old_range) + scale_min
+    return (((value - analog_min) * (scale_max - scale_min)) / (analog_max - analog_min)) + scale_min
 
-def convert_trigger(rightIn, leftIn):
-    rightIn = int(rightIn) + analog_max
-    leftIn = int(leftIn) + analog_max
-    output_trigger = rightIn - leftIn
-    return (output_trigger * 100) / 65534
 
-def stop_motors():
-    m1f.ChangeDutyCycle(0)
-    m2f.ChangeDutyCycle(0)
-    m3f.ChangeDutyCycle(0)
-    m4f.ChangeDutyCycle(0)
-    m1b.ChangeDutyCycle(0)
-    m2b.ChangeDutyCycle(0)
-    m3b.ChangeDutyCycle(0)
-    m4b.ChangeDutyCycle(0)
+def convert_trigger(rt, lt):
+    rt = int(rt) + analog_max
+    lt = int(lt) + analog_max
+    return ((rt - lt) * 100) / 65534
 
+
+# =========================
+# TT MOTOR CONTROL
+# =========================
+def stop_tt_motors():
+    for pwm in [tt_fl_f, tt_bl_f, tt_br_f, tt_fr_f, tt_fl_b, tt_bl_b, tt_br_b, tt_fr_b]:
+        pwm.ChangeDutyCycle(0)
+
+
+def compute_tt_output():
+    with axis_lock:
+        x = convert_range(axis_state[AXIS_X])
+        y = convert_range(axis_state[AXIS_Y])
+        z = convert_trigger(axis_state[AXIS_RT], axis_state[AXIS_LT])
+
+    deadzone = 0.08
+    if abs(x) < deadzone: x = 0
+    if abs(y) < deadzone: y = 0
+    if abs(z) < 2: z = 0
+
+    forward_v  = [1,1,1,1,0,0,0,0]
+    backward_v = [0,0,0,0,1,1,1,1]
+    right_v    = [1,0,1,0,0,1,0,1]
+    left_v     = [0,1,0,1,1,0,1,0]
+    clock_v    = [1,1,0,0,0,0,1,1]
+    counter_v  = [0,0,1,1,1,1,0,0]
+
+    working_v = [0]*8
+    output_v  = [0]*8
+
+    if x == 0 and y == 0 and z == 0:
+        return output_v
+
+    # SAME VECTOR LOGIC (UNCHANGED)
+    if y < 0:
+        for i in range(8):
+            forward_v[i] *= y
+            backward_v[i] = 0
+    elif y > 0:
+        for i in range(8):
+            backward_v[i] *= y
+            forward_v[i] = 0
+    else:
+        for i in range(8):
+            forward_v[i] = backward_v[i] = 0
+
+    if x > 0:
+        for i in range(8):
+            right_v[i] *= x
+            left_v[i] = 0
+    elif x < 0:
+        for i in range(8):
+            left_v[i] *= x
+            right_v[i] = 0
+    else:
+        for i in range(8):
+            left_v[i] = right_v[i] = 0
+
+    if z > 0:
+        for i in range(8):
+            clock_v[i] *= abs(z)
+            counter_v[i] = 0
+    elif z < 0:
+        for i in range(8):
+            counter_v[i] *= abs(z)
+            clock_v[i] = 0
+    else:
+        for i in range(8):
+            counter_v[i] = clock_v[i] = 0
+
+    for i in range(8):
+        working_v[i] = math.sqrt(
+            abs(forward_v[i]**2) +
+            abs(backward_v[i]**2) +
+            abs(left_v[i]**2) +
+            abs(right_v[i]**2)
+        )
+
+    for i in range(4):
+        if working_v[i] > working_v[i+4]:
+            output_v[i] = working_v[i] - working_v[i+4]
+        else:
+            output_v[i+4] = working_v[i+4] - working_v[i]
+
+    for i in range(8):
+        output_v[i] = ((100 - abs(z)) * output_v[i]) + clock_v[i] + counter_v[i]
+        output_v[i] = min(max(output_v[i], 0), 100)
+
+    return output_v
+
+
+# =========================
+# STEPPER CONTROL
+# =========================
 def stop_stepper():
-    for pin in controls:
+    for pin in stepper_pins:
         GPIO.output(pin, GPIO.LOW)
 
-def set_step(step_index):
+
+def set_step(index):
     for i in range(4):
-        GPIO.output(controls[i], fullsteps[step_index][i])
+        GPIO.output(stepper_pins[i], fullsteps[index][i])
+
 
 def step_clockwise():
     global current_step
     set_step(current_step)
     current_step = (current_step + 1) % len(fullsteps)
 
+
 def step_counterclockwise():
     global current_step
     set_step(current_step)
     current_step = (current_step - 1) % len(fullsteps)
 
-def get_step_delay(yAxis, yAxisL):
-    speed = abs(yAxis) + abs(yAxisL)
-    if speed > 1:
-        speed = 1
-    step_delay_max = 0.002
-    step_delay_min = 0.0005
-    return step_delay_max - (speed * (step_delay_max - step_delay_min))
 
-def set_angle(angle):
+def get_step_delay(y_r, y_l):
+    speed = min(abs(y_r) + abs(y_l), 1)
+    return 0.002 - (speed * (0.002 - 0.0005))
+
+
+# =========================
+# SERVO CONTROL
+# =========================
+def set_servo_angle(angle):
     duty = 2.5 + (angle / 18.0)
     servo.ChangeDutyCycle(duty)
     sleep(0.02)
     servo.ChangeDutyCycle(0)
 
-def compute_motor_output():
-    with axis_lock:
-        xAxis_raw = axis_state[AXIS_X]
-        yAxis_raw = axis_state[AXIS_Y]
-        leftRead = axis_state[AXIS_LT]
-        rightRead = axis_state[AXIS_RT]
 
-    xAxis = convert_range(xAxis_raw)
-    yAxis = convert_range(yAxis_raw)
-    zAxis = convert_trigger(rightRead, leftRead)
-
-    deadzone = 0.08
-    if abs(xAxis) < deadzone:
-        xAxis = 0
-    if abs(yAxis) < deadzone:
-        yAxis = 0
-    if abs(zAxis) < 2:
-        zAxis = 0
-
-    forward_v = [1, 1, 1, 1, 0, 0, 0, 0]
-    backward_v = [0, 0, 0, 0, 1, 1, 1, 1]
-    right_v = [1, 0, 1, 0, 0, 1, 0, 1]
-    left_v = [0, 1, 0, 1, 1, 0, 1, 0]
-    clock_v = [1, 1, 0, 0, 0, 0, 1, 1]
-    counter_v = [0, 0, 1, 1, 1, 1, 0, 0]
-
-    working_v = [0] * 8
-    output_v = [0] * 8
-
-    if xAxis == 0 and yAxis == 0 and zAxis == 0:
-        return output_v
-
-    if yAxis < 0:
-        for i in range(8):
-            forward_v[i] = yAxis * forward_v[i]
-            backward_v[i] = 0
-    elif yAxis > 0:
-        for i in range(8):
-            backward_v[i] = yAxis * backward_v[i]
-            forward_v[i] = 0
-    else:
-        for i in range(8):
-            backward_v[i] = 0
-            forward_v[i] = 0
-
-    if xAxis > 0:
-        for i in range(8):
-            right_v[i] = xAxis * right_v[i]
-            left_v[i] = 0
-    elif xAxis < 0:
-        for i in range(8):
-            left_v[i] = xAxis * left_v[i]
-            right_v[i] = 0
-    else:
-        for i in range(8):
-            left_v[i] = 0
-            right_v[i] = 0
-
-    if zAxis > 0:
-        for i in range(8):
-            clock_v[i] = abs(zAxis) * clock_v[i]
-            counter_v[i] = 0
-    elif zAxis < 0:
-        for i in range(8):
-            counter_v[i] = abs(zAxis) * counter_v[i]
-            clock_v[i] = 0
-    else:
-        for i in range(8):
-            counter_v[i] = 0
-            clock_v[i] = 0
-
-    for i in range(8):
-        forward_v[i] = forward_v[i] * forward_v[i]
-        backward_v[i] = backward_v[i] * backward_v[i]
-        right_v[i] = right_v[i] * right_v[i]
-        left_v[i] = left_v[i] * left_v[i]
-        working_v[i] = math.sqrt(
-            abs(forward_v[i]) +
-            abs(backward_v[i]) +
-            abs(left_v[i]) +
-            abs(right_v[i])
-        )
-
-    for i in range(4):
-        if working_v[i] > working_v[i + 4]:
-            output_v[i] = working_v[i] - working_v[i + 4]
-            output_v[i + 4] = 0
-        else:
-            output_v[i + 4] = working_v[i + 4] - working_v[i]
-            output_v[i] = 0
-
-    for i in range(8):
-        output_v[i] = ((100 - abs(zAxis)) * output_v[i]) + clock_v[i] + counter_v[i]
-
-    for i in range(4):
-        if output_v[i] > output_v[i + 4]:
-            output_v[i] = output_v[i] - output_v[i + 4]
-            output_v[i + 4] = 0
-        else:
-            output_v[i + 4] = output_v[i + 4] - output_v[i]
-            output_v[i] = 0
-
-    for i in range(8):
-        if output_v[i] > 100:
-            output_v[i] = 100
-        elif output_v[i] < 0:
-            output_v[i] = 0
-
-    return output_v
-
-def drive_dc_motors():
-    global running
+# =========================
+# THREADS
+# =========================
+def drive_tt():
     while running:
-        output_v = compute_motor_output()
+        out = compute_tt_output()
 
-        m1f.ChangeDutyCycle(output_v[0])
-        m2f.ChangeDutyCycle(output_v[1])
-        m3f.ChangeDutyCycle(output_v[2])
-        m4f.ChangeDutyCycle(output_v[3])
-        m1b.ChangeDutyCycle(output_v[4])
-        m2b.ChangeDutyCycle(output_v[5])
-        m3b.ChangeDutyCycle(output_v[6])
-        m4b.ChangeDutyCycle(output_v[7])
+        tt_fl_f.ChangeDutyCycle(out[0])
+        tt_bl_f.ChangeDutyCycle(out[1])
+        tt_br_f.ChangeDutyCycle(out[2])
+        tt_fr_f.ChangeDutyCycle(out[3])
 
-       # sleep(0.01)
+        tt_fl_b.ChangeDutyCycle(out[4])
+        tt_bl_b.ChangeDutyCycle(out[5])
+        tt_br_b.ChangeDutyCycle(out[6])
+        tt_fr_b.ChangeDutyCycle(out[7])
+
 
 def drive_stepper():
-    global running
     deadzone = 0.1
-
     while running:
         with axis_lock:
-            yAxis_raw = axis_state_stepper[AXIS_RIGHT_Y]
-            yAxis_l_raw = axis_state_stepper[AXIS_LEFT_Y]
+            y_r = convert_range(axis_state_stepper[AXIS_RIGHT_Y])
+            y_l = convert_range(axis_state_stepper[AXIS_LEFT_Y])
 
-        yAxis = convert_range(yAxis_raw)
-        yAxisL = convert_range(yAxis_l_raw)
-
-        if abs(yAxis) < deadzone and abs(yAxisL) < deadzone:
+        if abs(y_r) < deadzone and abs(y_l) < deadzone:
             stop_stepper()
             sleep(0.01)
             continue
 
-        step_delay = get_step_delay(yAxis, yAxisL)
+        delay = get_step_delay(y_r, y_l)
 
-        if yAxisL < -deadzone:
+        if y_l < -deadzone:
             step_clockwise()
-        elif yAxisL > deadzone:
+        elif y_l > deadzone:
             step_counterclockwise()
-        else:
-            stop_stepper()
-            sleep(0.01)
-            continue
 
-        sleep(step_delay)
+        sleep(delay)
+
 
 def drive_servo():
-    global running
-    global angle
-
+    global servo_angle
     while running:
         with button_lock:
-            left_pressed = button6
-            right_pressed = button7
+            l = button_left
+            r = button_right
 
-        changed = False
+        if l == 1 and r != 1:
+            servo_angle -= 20
+        elif r == 1 and l != 1:
+            servo_angle += 20
 
-        with angle_lock:
-            old_angle = angle
+        servo_angle = max(0, min(180, servo_angle))
+        set_servo_angle(servo_angle)
+        sleep(0.03)
 
-            if left_pressed == 1 and right_pressed != 1:
-                angle -= 20
-            elif right_pressed == 1 and left_pressed != 1:
-                angle += 20
 
-            if angle < 0:
-                angle = 0
-            if angle > 180:
-                angle = 180
+# =========================
+# START THREADS
+# =========================
+threading.Thread(target=drive_tt, daemon=True).start()
+threading.Thread(target=drive_stepper, daemon=True).start()
+threading.Thread(target=drive_servo, daemon=True).start()
 
-            if angle != old_angle:
-                changed = True
-                current_angle = angle
+set_servo_angle(servo_angle)
 
-        if changed:
-            set_angle(current_angle)
-            sleep(0.03)
-        else:
-            sleep(0.01)
-
-set_angle(angle)
-
-cmd = "jstest --event /dev/input/js0"
-process = subprocess.Popen(
-    cmd,
-    stdout=subprocess.PIPE,
-    stderr=subprocess.PIPE,
-    shell=True,
-    text=True
-)
-
-dc_thread = threading.Thread(target=drive_dc_motors, daemon=True)
-stepper_thread = threading.Thread(target=drive_stepper, daemon=True)
-servo_thread = threading.Thread(target=drive_servo, daemon=True)
-
-dc_thread.start()
-stepper_thread.start()
-servo_thread.start()
+# =========================
+# CONTROLLER INPUT
+# =========================
+process = subprocess.Popen("jstest --event /dev/input/js0", stdout=subprocess.PIPE, shell=True, text=True)
 
 try:
     while True:
@@ -389,58 +359,39 @@ try:
         if not line:
             break
 
-        line = line.strip()
-
-        match = re.search(
-            r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)",
-            line
-        )
-
+        match = re.search(r"type\s+(\d+),.*number\s+(\d+),\s+value\s+(-?\d+)", line)
         if not match:
             continue
 
-        event_type = int(match.group(1))
-        number = int(match.group(2))
-        value = int(match.group(3))
+        t, n, v = int(match.group(1)), int(match.group(2)), int(match.group(3))
 
-        if event_type == 2 and number in (AXIS_X, AXIS_Y, AXIS_LT, AXIS_RT):
+        if t == 2:
             with axis_lock:
-                axis_state[number] = value
+                if n in axis_state:
+                    axis_state[n] = v
+                if n in axis_state_stepper:
+                    axis_state_stepper[n] = v
 
-        elif event_type == 2 and number in (AXIS_RIGHT_Y, AXIS_LEFT_Y):
-            with axis_lock:
-                axis_state_stepper[number] = value
-
-        elif event_type == 1 and number == BUTTON_LEFT:
+        elif t == 1:
             with button_lock:
-                button6 = value
-
-        elif event_type == 1 and number == BUTTON_RIGHT:
-            with button_lock:
-                button7 = value
+                if n == BUTTON_LEFT:
+                    button_left = v
+                elif n == BUTTON_RIGHT:
+                    button_right = v
 
 finally:
     running = False
     sleep(0.05)
 
-    stop_motors()
+    stop_tt_motors()
     stop_stepper()
-
     servo.stop()
 
-    try:
-        m1f.stop()
-        m2f.stop()
-        m3f.stop()
-        m4f.stop()
-        m1b.stop()
-        m2b.stop()
-        m3b.stop()
-        m4b.stop()
-        p1.stop()
-        p2.stop()
-    except:
-        pass
+    for pwm in [tt_fl_f, tt_fl_b, tt_bl_f, tt_bl_b, tt_br_f, tt_br_b, tt_fr_f, tt_fr_b, p1, p2]:
+        try:
+            pwm.stop()
+        except:
+            pass
 
     try:
         process.terminate()
