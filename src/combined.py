@@ -322,7 +322,9 @@ def compute_tt_output():
 # =========================
 def get_step_delay(y_r, y_l):
     speed = min(abs(y_r) + abs(y_l), 1)
-    return 0.002 - (speed * (0.002 - 0.0005))
+    step_delay_max = 0.005
+    step_delay_min = 0.0008
+    return step_delay_max - (speed * (step_delay_max - step_delay_min))
 
 # =========================
 # SERVO CONTROL
