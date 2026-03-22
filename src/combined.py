@@ -397,11 +397,10 @@ def start_motors():
         
 motor_thread = threading.Thread(target=start_motor, daemon=True)
 servo_thread = threading.Thread(target=start_servo, daemon=True)
-motors_thread = threading.Thread(target=start_motors, daemon=True)
+
 
 motor_thread.start()
 servo_thread.start()
-motors_thread.start()
 
 try:
     while True:
@@ -415,7 +414,7 @@ try:
             break
 
         line = line.strip()
-        print(line)
+        #print(line)
 
         match = re.search(r"type\s+(\d+),\s*time\s+\d+,\s+number\s+(\d+),\s+value\s+(-?\d+)", line)
         print(match)
@@ -431,21 +430,25 @@ try:
             axis_state[number] = value
             # print("access")
             start_motors()
+            print("wheels")
 
         if event_type == 2 and (number == 2 or number == 3):
             with axis_lock:
                 axis_state_stepper[number] = value
             # print("access")
+            print("stepper motor")
+            print(axis_state_stepper)
 
         if event_type == 1 and number == BUTTON_LEFT:
             with button_lock:
                 button6 = value
+            print("servo left")
 
         if event_type == 1 and number == BUTTON_RIGHT:
             with button_lock:
                 button7 = value
-        else:
-            print(line.rstrip(), flush=True)
+            print("servo right")
+
             
 finally:
     stop_motors()
