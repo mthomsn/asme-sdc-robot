@@ -154,6 +154,8 @@ AXIS_Y = 1
 AXIS_LT = 4
 AXIS_RT = 5
 
+toggleGrab = False
+
 AXIS_RIGHT_Y = 2
 AXIS_LEFT_Y = 3
 
@@ -555,7 +557,7 @@ def drive_stepper():
 def drive_servo():
     global servo_angle
     last_angle = servo_angle
-
+    print("moving servo")
     while running:
         with button_lock:
             l = button_left
@@ -640,6 +642,7 @@ try:
             break
 
         match = re.search(r"type\s+(\d+),.*number\s+(\d+),\s+value\s+(-?\d+)", line)
+        print(match)
         if not match:
             continue
 
@@ -647,14 +650,23 @@ try:
         n = int(match.group(2))
         v = int(match.group(3))
 
+        if t == 1 and n == 10 and v == 1:
+            #print(t, n)
+            if toggleGrab is True:
+                toggleGrab = False
+                #print(toggleGrab)
+            elif toggleGrab is False:
+                toggleGrab = True
+                #print(toggleGrab)
+
         if t == 2:
             with axis_lock:
                 if n in axis_state:
                     axis_state[n] = v
-                if n in axis_state_stepper:
+                if n in axis_state_stepper and toggleGrab is True:
                     axis_state_stepper[n] = v
 
-        elif t == 1:
+        elif t == 1 and toggleGrab is True:
             with button_lock:
                 if n == BUTTON_LEFT:
                     button_left = v
