@@ -9,7 +9,7 @@ NSLEEP1 = 12  #Enabling signal pin for drv8833
 motor_1_backward = 27
 motor_1_forward = 17
 motor_2_backward = 22
-motor_2_forward = 2
+motor_2_forward = 23
 
 NSLEEP2 = 13
 motor_3_forward = 25
@@ -18,10 +18,9 @@ motor_4_forward = 26
 motor_4_backward = 16
 temp1=1
 
-controls = [29, 31, 33, 35]
+controls = [5, 6, 4, 19]
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setmode(GPIO.BOARD)
 
 #Define pin as output signal
 GPIO.setup(NSLEEP1,GPIO.OUT)
@@ -150,17 +149,7 @@ def convert_trigger(rightIn, leftIn):
     output_trigger = rightIn - leftIn
     output_trigger = (((output_trigger) * 100) / 65534)
     return output_trigger
-
-def setPrecisionMode(state):
-    global scale_max
-    global scale_min
-    if (state == True):
-        scale_max = 0.6
-        scale_min = -0.6
-    else:
-        scale_max = 1
-        scale_min = -1
-        
+ 
 def stop_motors():
     m1f.ChangeDutyCycle(0)
     m2f.ChangeDutyCycle(0)
@@ -227,8 +216,8 @@ def start_motor():
         yAxis = convert_range(yAxis_raw)
         yAxisL = convert_range(yAxis_l_raw)
 
-        print(yAxis, "bruh")
-        print(yAxisL, "bruh pt2")
+        #print(yAxis, "bruh")
+        #print(yAxisL, "bruh pt2")
 
         if abs(yAxis) < deadzone and abs(yAxisL) < deadzone:
             stop_motor()
@@ -289,9 +278,9 @@ def start_servo():
 
 set_angle(angle)
 
-
 def start_motors():
     global forward_v, backward_v, right_v, left_v, clock_v, counter_v, working_v, output_v
+    
     # reset vectors for next reading
     forward_v = [ 1, 1, 1, 1, 0, 0, 0, 0]
     backward_v = [ 0, 0, 0, 0, 1, 1, 1, 1]
@@ -408,10 +397,11 @@ def start_motors():
         
 motor_thread = threading.Thread(target=start_motor, daemon=True)
 servo_thread = threading.Thread(target=start_servo, daemon=True)
+motors_thread = threading.Thread(target=start_motors, daemon=True)
 
 motor_thread.start()
 servo_thread.start()
-
+motors_thread.start()
 
 try:
     while True:
@@ -437,15 +427,15 @@ try:
         number = int(match.group(2))
         value = int(match.group(3))
 
-        if event_type == 2 and number == 1 or number == 2:
+        if event_type == 2 and (number == 1 or number == 0 or number == 4 or number == 5):
             axis_state[number] = value
-            print("access")
+            # print("access")
             start_motors()
 
-        if event_type == 2 and number in axis_state_stepper and number == AXIS_RIGHT_Y or number == AXIS_LEFT_Y:
+        if event_type == 2 and (number == 2 or number == 3):
             with axis_lock:
                 axis_state_stepper[number] = value
-            print("access")
+            # print("access")
 
         if event_type == 1 and number == BUTTON_LEFT:
             with button_lock:
