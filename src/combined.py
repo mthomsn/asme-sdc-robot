@@ -564,9 +564,9 @@ def drive_servo():
             r = button_right
 
         if l == 1 and r != 1:
-            servo_angle -= 20
+            servo_angle -= 5
         elif r == 1 and l != 1:
-            servo_angle += 20
+            servo_angle += 5
 
         servo_angle = max(0, min(180, servo_angle))
 
