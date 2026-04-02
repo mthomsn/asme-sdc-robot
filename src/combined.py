@@ -84,9 +84,9 @@ for pin in tt_motor_pins:
     GPIO.output(pin, GPIO.LOW)
 
 # TT LIFTING
-for pin in tt_lifting_motor_pins:
-    GPIO.setup(pin, GPIO.OUT)
-    GPIO.output(pin, GPIO.LOW)
+# for pin in tt_lifting_motor_pins:
+#     GPIO.setup(pin, GPIO.OUT)
+#     GPIO.output(pin, GPIO.LOW)
 
 # SERVO MOTOR
 GPIO.setup(servo_pin, GPIO.OUT)
@@ -123,10 +123,10 @@ for pwm in [tt_fl_f, tt_fl_b, tt_bl_f, tt_bl_b, tt_br_f, tt_br_b, tt_fr_f, tt_fr
     pwm.start(0)
 
 # TT LIFTING
-tt_lift_up_pwm = GPIO.PWM(tt_lift_up, 1000)
-tt_lift_down_pwm = GPIO.PWM(tt_lift_down, 1000)
-tt_lift_up_pwm.start(0)
-tt_lift_down_pwm.start(0)
+# tt_lift_up_pwm = GPIO.PWM(tt_lift_up, 1000)
+# tt_lift_down_pwm = GPIO.PWM(tt_lift_down, 1000)
+# tt_lift_up_pwm.start(0)
+# tt_lift_down_pwm.start(0)
 
 # SERVO MOTOR
 servo = GPIO.PWM(servo_pin, 50)
@@ -498,30 +498,30 @@ def drive_tt():
 
         time.sleep(0.005)
 
-def drive_lift_motor():
-    deadzone = 0.1
-    while running:
-        with axis_lock:
-            y = convert_range(axis_state_lifter[AXIS_LEFT_Y])
+# def drive_lift_motor():
+#     deadzone = 0.1
+#     while running:
+#         with axis_lock:
+#             y = convert_range(axis_state_lifter[AXIS_LEFT_Y])
 
-        if abs(y) < deadzone:
-            tt_lift_up.ChangeDutyCycle(0)
-            tt_lift_down.ChangeDutyCycle(0)
-            time.sleep(0.01)
-            continue
+#         if abs(y) < deadzone:
+#             tt_lift_up.ChangeDutyCycle(0)
+#             tt_lift_down.ChangeDutyCycle(0)
+#             time.sleep(0.01)
+#             continue
 
-        speed = abs(y) * 100
+#         speed = abs(y) * 100
 
-        if y < 0:
-            # lift up
-            tt_lift_up.ChangeDutyCycle(speed)
-            tt_lift_down.ChangeDutyCycle(0)
-        else:
-            # lift down
-            tt_lift_up.ChangeDutyCycle(0)
-            tt_lift_down.ChangeDutyCycle(speed)
+#         if y < 0:
+#             # lift up
+#             tt_lift_up.ChangeDutyCycle(speed)
+#             tt_lift_down.ChangeDutyCycle(0)
+#         else:
+#             # lift down
+#             tt_lift_up.ChangeDutyCycle(0)
+#             tt_lift_down.ChangeDutyCycle(speed)
 
-        time.sleep(0.01)
+#         time.sleep(0.01)
 
 def drive_servo():
     global servo_angle
@@ -632,8 +632,8 @@ try:
             with axis_lock:
                 if n in axis_state:
                     axis_state[n] = v
-                if n in axis_state_lifter and toggleGrab is True:
-                    axis_state_lifter[n] = v
+                # if n in axis_state_lifter and toggleGrab is True:
+                #     axis_state_lifter[n] = v
 
         elif t == 1 and toggleGrab is True:
             with button_lock:
@@ -647,10 +647,10 @@ finally:
     sleep(0.05)
 
     stop_tt_motors()
-    tt_lift_up.ChangeDutyCycle(0)
-    tt_lift_down.ChangeDutyCycle(0)
-    tt_lift_up.stop()
-    tt_lift_down.stop()
+    # tt_lift_up.ChangeDutyCycle(0)
+    # tt_lift_down.ChangeDutyCycle(0)
+    # tt_lift_up.stop()
+    # tt_lift_down.stop()
     stop_sorting_motor()
     servo.stop()
 
