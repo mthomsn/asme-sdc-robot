@@ -39,9 +39,9 @@ tt_motor_pins = [
 ]
 
 # TT Lifting
-tt_lift_up = 0
-tt_lift_down = 0
-tt_lifting_motor_pins = [tt_lift_up, tt_lift_down]
+# tt_lift_up = 0
+# tt_lift_down = 0
+# tt_lifting_motor_pins = [tt_lift_up, tt_lift_down]
 
 # SERVO MOTOR PIN
 servo_pin = 18
