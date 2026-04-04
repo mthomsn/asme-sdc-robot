@@ -174,7 +174,7 @@ def isGrayRGB(r, g, b, c):
     return (64 <= r <= 105) and \
            (86 <= g <= 105) and \
            (40 <= b <= 75) and \
-           (400 <= c) and \
+           (600 <= c) and \
            (0.70 <= rg <= 1.15) and \
            (0.85 <= rb <= 2.45)
 
