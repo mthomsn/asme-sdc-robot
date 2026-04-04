@@ -113,6 +113,7 @@ tt_br_f = GPIO.PWM(tt_back_right_forward, 1000)
 tt_fr_b = GPIO.PWM(tt_front_right_backward, 1000)
 tt_fr_f = GPIO.PWM(tt_front_right_forward, 1000)
 
+
 p1 = GPIO.PWM(NSLEEP1, 1000)
 p2 = GPIO.PWM(NSLEEP2, 1000)
 
@@ -217,7 +218,7 @@ def compute_tt_output():
         y = convert_range(axis_state[AXIS_Y])
         z = convert_trigger(axis_state[AXIS_RT], axis_state[AXIS_LT])
 
-    deadzone = 0.08
+    deadzone = 0
     if abs(x) < deadzone:
         x = 0
     if abs(y) < deadzone:
@@ -225,10 +226,10 @@ def compute_tt_output():
     if abs(z) < 2:
         z = 0
 
-    forward_v = [1, 1, 1, 1, 0, 0, 0, 0]
-    backward_v = [0, 0, 0, 0, 1, 1, 1, 1]
-    right_v = [1, 0, 1, 0, 0, 1, 0, 1]
-    left_v = [0, 1, 0, 1, 1, 0, 1, 0]
+    backward_v = [1, 1, 1, 1, 0, 0, 0, 0]
+    forward_v = [0, 0, 0, 0, 1, 1, 1, 1]
+    left_v = [1, 0, 1, 0, 0, 1, 0, 1]
+    right_v = [0, 1, 0, 1, 1, 0, 1, 0]
     clock_v = [1, 1, 0, 0, 0, 0, 1, 1]
     counter_v = [0, 0, 1, 1, 1, 1, 0, 0]
 
@@ -434,7 +435,7 @@ def isBlackRGB(r, g, b, c):
     return (
         (58 <= r <= 110) and
         (80 <= g <= 105) and
-        (55 <= b <= 95) and
+        (60 <= b <= 95) and
         (200 <= c <= 1900) and
         (0.55 <= rg <= 1.30) and
         (0.60 <= rb <= 1.85)
@@ -546,6 +547,7 @@ def drive_servo():
         sleep(0.03)
 
 def run_color_sensor_and_sorter():
+   #  if toggleGrab is True:
     while running:
         try:
             raw_r, raw_g, raw_b, raw_c = get_averaged_data(samples=7, delay=0.01)
@@ -568,9 +570,19 @@ def run_color_sensor_and_sorter():
             if isRecyclable(r, g, b, raw_c):
                 sort_item("Recycle")
                 print("\t=> RECYCLABLE")
+                if isGreenRGB(r, g, b, raw_c):
+                    print("\t GREEN")
+                elif isBlueRGB(r, g, b, raw_c):
+                    print("\t BLUE")
             elif isGarbage(r, g, b, raw_c):
                 sort_item("Trash")
                 print("\t=> GARBAGE")
+                if isBlackRGB(r, g, b, raw_c):
+                    print("\t BLACK")
+                elif isGrayRGB(r, g, b, raw_c):
+                    print("\t GRAY")
+                elif isBrownRGB(r, g, b, raw_c):
+                    print("\t BROWN")
             elif isFlap(r, g, b, raw_c):
                 sort_item("Flap")
                 print("\t=> RED FLAP")
@@ -590,7 +602,7 @@ init_sensor()
 set_servo_angle(servo_angle)
 
 threading.Thread(target=drive_tt, daemon=True).start()
-threading.Thread(target=drive_lift_motor, daemon=True).start()
+# threading.Thread(target=drive_lift_motor, daemon=True).start()
 threading.Thread(target=drive_servo, daemon=True).start()
 threading.Thread(target=run_color_sensor_and_sorter, daemon=True).start()
 
