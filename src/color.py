@@ -140,7 +140,7 @@ def isGreenRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
 
     return (42 <= r <= 105) and \
-           (105 <= g <= 155) and \
+           (110 <= g <= 155) and \
            (35 <= b <= 85) and \
            (c >= 400) and \
            (rg >= 0.30 and rg <= 0.90) and \
@@ -173,16 +173,16 @@ def isGrayRGB(r, g, b, c):
 
     return (64 <= r <= 105) and \
            (86 <= g <= 105) and \
-           (62 <= b <= 75) and \
-           (900 <= c) and \
+           (40 <= b <= 75) and \
+           (600 <= c) and \
            (0.70 <= rg <= 1.15) and \
-           (0.85 <= rb <= 1.45)
+           (0.85 <= rb <= 2.45)
 
 def isBrownRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
 
     return (85 <= r <= 120) and \
-           (70 <= g <= 105) and \
+           (70 <= g <= 100) and \
            (42 <= b <= 68) and \
            (650 <= c) and \
            (0.90 <= rg <= 1.45) and \

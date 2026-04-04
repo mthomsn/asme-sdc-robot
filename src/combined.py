@@ -38,8 +38,10 @@ tt_motor_pins = [
     tt_front_right_forward, tt_front_right_backward
 ]
 
-# STEPPER MOTOR PINS
-stepper_pins = [5, 6, 4, 19]
+# TT Lifting
+# tt_lift_up = 0
+# tt_lift_down = 0
+# tt_lifting_motor_pins = [tt_lift_up, tt_lift_down]
 
 # SERVO MOTOR PIN
 servo_pin = 18
@@ -81,10 +83,10 @@ for pin in tt_motor_pins:
     GPIO.setup(pin, GPIO.OUT)
     GPIO.output(pin, GPIO.LOW)
 
-# STEPPER MOTOR
-for pin in stepper_pins:
-    GPIO.setup(pin, GPIO.OUT)
-    GPIO.output(pin, GPIO.LOW)
+# TT LIFTING
+# for pin in tt_lifting_motor_pins:
+#     GPIO.setup(pin, GPIO.OUT)
+#     GPIO.output(pin, GPIO.LOW)
 
 # SERVO MOTOR
 GPIO.setup(servo_pin, GPIO.OUT)
@@ -111,6 +113,7 @@ tt_br_f = GPIO.PWM(tt_back_right_forward, 1000)
 tt_fr_b = GPIO.PWM(tt_front_right_backward, 1000)
 tt_fr_f = GPIO.PWM(tt_front_right_forward, 1000)
 
+
 p1 = GPIO.PWM(NSLEEP1, 1000)
 p2 = GPIO.PWM(NSLEEP2, 1000)
 
@@ -120,18 +123,15 @@ p2.start(80)
 for pwm in [tt_fl_f, tt_fl_b, tt_bl_f, tt_bl_b, tt_br_f, tt_br_b, tt_fr_f, tt_fr_b]:
     pwm.start(0)
 
+# TT LIFTING
+# tt_lift_up_pwm = GPIO.PWM(tt_lift_up, 1000)
+# tt_lift_down_pwm = GPIO.PWM(tt_lift_down, 1000)
+# tt_lift_up_pwm.start(0)
+# tt_lift_down_pwm.start(0)
+
 # SERVO MOTOR
 servo = GPIO.PWM(servo_pin, 50)
 servo.start(0)
-
-# STEPPER MOTOR
-fullsteps = [
-    [1, 0, 0, 0],
-    [0, 1, 0, 0],
-    [0, 0, 1, 0],
-    [0, 0, 0, 1],
-]
-current_step = 0
 
 # =========================
 # LOCKS + GLOBAL STATE
@@ -169,7 +169,7 @@ axis_state = {
     AXIS_RT: -32767,
 }
 
-axis_state_stepper = {
+axis_state_lifter = {
     AXIS_RIGHT_Y: 0,
     AXIS_LEFT_Y: 0,
 }
@@ -177,27 +177,6 @@ axis_state_stepper = {
 button_left = 0
 button_right = 0
 servo_angle = 0
-
-# =========================
-# STEPPER FUNCTIONS
-# =========================
-def stop_stepper():
-    for pin in stepper_pins:
-        GPIO.output(pin, GPIO.LOW)
-
-def set_step(index):
-    for i in range(4):
-        GPIO.output(stepper_pins[i], fullsteps[index][i])
-
-def step_clockwise():
-    global current_step
-    set_step(current_step)
-    current_step = (current_step + 1) % len(fullsteps)
-
-def step_counterclockwise():
-    global current_step
-    set_step(current_step)
-    current_step = (current_step - 1) % len(fullsteps)
 
 # =========================
 # SORTING MOTOR FUNCTIONS
@@ -239,7 +218,7 @@ def compute_tt_output():
         y = convert_range(axis_state[AXIS_Y])
         z = convert_trigger(axis_state[AXIS_RT], axis_state[AXIS_LT])
 
-    deadzone = 0.08
+    deadzone = 0
     if abs(x) < deadzone:
         x = 0
     if abs(y) < deadzone:
@@ -247,10 +226,10 @@ def compute_tt_output():
     if abs(z) < 2:
         z = 0
 
-    forward_v = [1, 1, 1, 1, 0, 0, 0, 0]
-    backward_v = [0, 0, 0, 0, 1, 1, 1, 1]
-    right_v = [1, 0, 1, 0, 0, 1, 0, 1]
-    left_v = [0, 1, 0, 1, 1, 0, 1, 0]
+    backward_v = [1, 1, 1, 1, 0, 0, 0, 0]
+    forward_v = [0, 0, 0, 0, 1, 1, 1, 1]
+    left_v = [1, 0, 1, 0, 0, 1, 0, 1]
+    right_v = [0, 1, 0, 1, 1, 0, 1, 0]
     clock_v = [1, 1, 0, 0, 0, 0, 1, 1]
     counter_v = [0, 0, 1, 1, 1, 1, 0, 0]
 
@@ -318,15 +297,6 @@ def compute_tt_output():
         output_v[i] = min(max(output_v[i], 0), 100)
 
     return output_v
-
-# =========================
-# STEPPER CONTROL
-# =========================
-def get_step_delay(y_r, y_l):
-    speed = min(abs(y_r) + abs(y_l), 1)
-    step_delay_max = 0.005
-    step_delay_min = 0.0008
-    return step_delay_max - (speed * (step_delay_max - step_delay_min))
 
 # =========================
 # SERVO CONTROL
@@ -465,7 +435,7 @@ def isBlackRGB(r, g, b, c):
     return (
         (58 <= r <= 110) and
         (80 <= g <= 105) and
-        (55 <= b <= 95) and
+        (60 <= b <= 95) and
         (200 <= c <= 1900) and
         (0.55 <= rg <= 1.30) and
         (0.60 <= rb <= 1.85)
@@ -529,30 +499,30 @@ def drive_tt():
 
         time.sleep(0.005)
 
-def drive_stepper():
-    deadzone = 0.1
-    while running:
-        with axis_lock:
-            y_r = convert_range(axis_state_stepper[AXIS_RIGHT_Y])
-            y_l = convert_range(axis_state_stepper[AXIS_LEFT_Y])
+# def drive_lift_motor():
+#     deadzone = 0.1
+#     while running:
+#         with axis_lock:
+#             y = convert_range(axis_state_lifter[AXIS_LEFT_Y])
 
-        if abs(y_r) < deadzone and abs(y_l) < deadzone:
-            stop_stepper()
-            sleep(0.01)
-            continue
+#         if abs(y) < deadzone:
+#             tt_lift_up.ChangeDutyCycle(0)
+#             tt_lift_down.ChangeDutyCycle(0)
+#             time.sleep(0.01)
+#             continue
 
-        delay = get_step_delay(y_r, y_l)
+#         speed = abs(y) * 100
 
-        if y_l < -deadzone:
-            step_clockwise()
-        elif y_l > deadzone:
-            step_counterclockwise()
-        else:
-            stop_stepper()
-            sleep(0.01)
-            continue
+#         if y < 0:
+#             # lift up
+#             tt_lift_up.ChangeDutyCycle(speed)
+#             tt_lift_down.ChangeDutyCycle(0)
+#         else:
+#             # lift down
+#             tt_lift_up.ChangeDutyCycle(0)
+#             tt_lift_down.ChangeDutyCycle(speed)
 
-        sleep(delay)
+#         time.sleep(0.01)
 
 def drive_servo():
     global servo_angle
@@ -577,6 +547,7 @@ def drive_servo():
         sleep(0.03)
 
 def run_color_sensor_and_sorter():
+   #  if toggleGrab is True:
     while running:
         try:
             raw_r, raw_g, raw_b, raw_c = get_averaged_data(samples=7, delay=0.01)
@@ -599,9 +570,19 @@ def run_color_sensor_and_sorter():
             if isRecyclable(r, g, b, raw_c):
                 sort_item("Recycle")
                 print("\t=> RECYCLABLE")
+                if isGreenRGB(r, g, b, raw_c):
+                    print("\t GREEN")
+                elif isBlueRGB(r, g, b, raw_c):
+                    print("\t BLUE")
             elif isGarbage(r, g, b, raw_c):
                 sort_item("Trash")
                 print("\t=> GARBAGE")
+                if isBlackRGB(r, g, b, raw_c):
+                    print("\t BLACK")
+                elif isGrayRGB(r, g, b, raw_c):
+                    print("\t GRAY")
+                elif isBrownRGB(r, g, b, raw_c):
+                    print("\t BROWN")
             elif isFlap(r, g, b, raw_c):
                 sort_item("Flap")
                 print("\t=> RED FLAP")
@@ -621,7 +602,7 @@ init_sensor()
 set_servo_angle(servo_angle)
 
 threading.Thread(target=drive_tt, daemon=True).start()
-threading.Thread(target=drive_stepper, daemon=True).start()
+# threading.Thread(target=drive_lift_motor, daemon=True).start()
 threading.Thread(target=drive_servo, daemon=True).start()
 threading.Thread(target=run_color_sensor_and_sorter, daemon=True).start()
 
@@ -663,8 +644,8 @@ try:
             with axis_lock:
                 if n in axis_state:
                     axis_state[n] = v
-                if n in axis_state_stepper and toggleGrab is True:
-                    axis_state_stepper[n] = v
+                # if n in axis_state_lifter and toggleGrab is True:
+                #     axis_state_lifter[n] = v
 
         elif t == 1 and toggleGrab is True:
             with button_lock:
@@ -678,7 +659,10 @@ finally:
     sleep(0.05)
 
     stop_tt_motors()
-    stop_stepper()
+    # tt_lift_up.ChangeDutyCycle(0)
+    # tt_lift_down.ChangeDutyCycle(0)
+    # tt_lift_up.stop()
+    # tt_lift_down.stop()
     stop_sorting_motor()
     servo.stop()
 
