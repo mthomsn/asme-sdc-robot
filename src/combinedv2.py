@@ -429,60 +429,55 @@ def get_ratios(r, g, b):
 
 def isGreenRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
-    return (
-        (42 <= r <= 105) and
-        (105 <= g <= 155) and
-        (45 <= b <= 85) and
-        (c >= 400) and
-        (0.30 <= rg <= 0.90) and
-        (0.30 <= bg <= 0.85) and
-        (gr >= 1.0)
-    )
+
+    return (42 <= r <= 105) and \
+           (110 <= g <= 155) and \
+           (35 <= b <= 85) and \
+           (c >= 400) and \
+           (rg >= 0.30 and rg <= 0.90) and \
+           (bg >= 0.30 and bg <= 0.85) and \
+           (gr >= 1.0)
 
 def isBlueRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
-    return (
-        (25 <= r <= 65) and
-        (70 <= g <= 100) and
-        (90 <= b <= 170) and
-        (c >= 500) and
-        (br >= 1.5) and
-        (0.20 <= rb <= 0.70) and
-        (0.45 <= gb <= 1.00)
-    )
+
+    return (25 <= r <= 65) and \
+           (70 <= g <= 100) and \
+           (78 <= b <= 170) and \
+           (c >= 500) and \
+           (br >= 1.5) and \
+           (rb >= 0.20 and rb <= 0.70) and \
+           (gb >= 0.45 and gb <= 1.25)
 
 def isBlackRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
-    return (
-        (58 <= r <= 110) and
-        (80 <= g <= 105) and
-        (60 <= b <= 95) and
-        (200 <= c <= 1900) and
-        (0.55 <= rg <= 1.30) and
-        (0.60 <= rb <= 1.85)
-    )
+
+    return (58 <= r <= 110) and \
+           (78 <= g <= 105) and \
+           (55 <= b <= 95) and \
+           (700 <= c <= 1900) and \
+           (0.55 <= rg <= 1.30) and \
+           (0.65 <= rb <= 1.85) 
 
 def isGrayRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
-    return (
-        (70 <= r <= 105) and
-        (90 <= g <= 105) and
-        (67 <= b <= 75) and
-        (c >= 900) and
-        (0.70 <= rg <= 1.15) and
-        (0.85 <= rb <= 1.45)
-    )
+
+    return (64 <= r <= 105) and \
+           (86 <= g <= 105) and \
+           (40 <= b <= 75) and \
+           (600 <= c) and \
+           (0.70 <= rg <= 1.15) and \
+           (0.85 <= rb <= 2.45)
 
 def isBrownRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
-    return (
-        (85 <= r <= 120) and
-        (85 <= g <= 105) and
-        (50 <= b <= 68) and
-        (c >= 500) and
-        (0.90 <= rg <= 1.35) and
-        (1.30 <= rb <= 2.30)
-    )
+
+    return (85 <= r <= 120) and \
+           (70 <= g <= 100) and \
+           (42 <= b <= 68) and \
+           (650 <= c) and \
+           (0.90 <= rg <= 1.45) and \
+           (1.30 <= rb <= 2.40)
 
 def isRecyclable(r, g, b, c):
     return isGreenRGB(r, g, b, c) or isBlueRGB(r, g, b, c)
@@ -491,15 +486,14 @@ def isGarbage(r, g, b, c):
     return isBlackRGB(r, g, b, c) or isGrayRGB(r, g, b, c) or isBrownRGB(r, g, b, c)
 
 def isFlap(r, g, b, c):
-    rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
-    return (
-        (145 <= r <= 170) and
-        (50 <= g <= 60) and
-        (30 <= b <= 40) and
-        (c >= 500) and
-        (2.60 <= rg <= 3.50) and
-        (3.00 <= rb <= 6.00)
-    )
+    rb, bg, rb, br, gb, gr = get_ratios(r, g, b)
+
+    return (145 <= r <= 170) and \
+           (50 <= g <= 60) and \
+           (30 <= b <= 40) and \
+           (500 <= c) and \
+           (2.60 <= rg <= 3.50) and \
+           (3.00 <= rb <= 6.00)
 
 # =========================
 # THREADS
