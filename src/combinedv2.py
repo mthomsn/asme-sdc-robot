@@ -543,7 +543,7 @@ def drive_servo():
     global servo_angle
     last_angle = servo_angle
     print("moving servo")
-    while runninG:
+    while running:
         with button_lock:
             l = button_left
             r = button_right
