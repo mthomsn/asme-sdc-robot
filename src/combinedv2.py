@@ -44,7 +44,7 @@ tt_motor_pins = [
 # tt_lifting_motor_pins = [tt_lift_up, tt_lift_down]
 
 # SERVO MOTOR PIN
-servo_pin = 18
+# servo_pin = 18
 
 # SORTING MOTOR
 sorting_motor_right = 10
@@ -52,6 +52,10 @@ sorting_motor_left = 9
 
 green = 20
 red = 21
+
+# N20 MOTOR PINS
+N20_IN1 = 5
+N20_IN2 = 6
 
 # =========================
 # COLOR SENSOR SETUP
@@ -91,8 +95,15 @@ for pin in tt_motor_pins:
 #     GPIO.setup(pin, GPIO.OUT)
 #     GPIO.output(pin, GPIO.LOW)
 
-# SERVO MOTOR
-GPIO.setup(servo_pin, GPIO.OUT)
+# SERVO MOTOR -> change to n20 motor
+# GPIO.setup(servo_pin, GPIO.OUT)
+
+# N20 MOTOR
+GPIO.setup(N20_IN1, GPIO.OUT)
+GPIO.setup(N20_IN2, GPIO.OUT)
+# GPIO.setup(N20_PWM, GPIO.OUT)
+GPIO.output(N20_IN1, GPIO.LOW)
+GPIO.output(N20_IN2, GPIO.LOW)
 
 # SORTING MOTOR
 GPIO.setup(sorting_motor_right, GPIO.OUT)
@@ -135,9 +146,17 @@ for pwm in [tt_fl_f, tt_fl_b, tt_bl_f, tt_bl_b, tt_br_f, tt_br_b, tt_fr_f, tt_fr
 # tt_lift_up_pwm.start(0)
 # tt_lift_down_pwm.start(0)
 
+# TT DUMPING
+# tt_dump_pwm = GPIO.PWM(tt_dump, 1000)
+# tt_dump_pwm.start(0)
+
 # SERVO MOTOR
-servo = GPIO.PWM(servo_pin, 50)
-servo.start(0)
+# servo = GPIO.PWM(servo_pin, 50)
+# servo.start(0)
+
+# N20 MOTOR
+# pwmn20 = GPIO.PWM(N20_PWM, 1000)
+# pwmn20.start(0)
 
 # =========================
 # LOCKS + GLOBAL STATE
@@ -151,7 +170,7 @@ running = True
 
 axis_lock = threading.Lock()
 button_lock = threading.Lock()
-angle_lock = threading.Lock()
+# angle_lock = threading.Lock()
 sorting_lock = threading.Lock()
 sensor_lock = threading.Lock()
 led_lock = threading.Lock()
@@ -183,7 +202,7 @@ axis_state_lifter = {
 
 button_left = 0
 button_right = 0
-servo_angle = 0
+# servo_angle = 0
 
 
 # =========================
@@ -192,7 +211,7 @@ servo_angle = 0
 
 def grabLED():
     with led_lock:
-        if toggleGrab is True:
+        if toggleGrab:
             GPIO.output(green, GPIO.HIGH)
             GPIO.output(red, GPIO.LOW) 
         else:
@@ -322,11 +341,49 @@ def compute_tt_output():
 # =========================
 # SERVO CONTROL
 # =========================
-def set_servo_angle(angle):
-    duty = 2.5 + (angle / 18.0)
-    servo.ChangeDutyCycle(duty)
-    sleep(0.02)
-    servo.ChangeDutyCycle(0)
+# def set_servo_angle(angle):
+#     duty = 2.5 + (angle / 18.0)
+#     servo.ChangeDutyCycle(duty)
+#     sleep(0.02)
+#     servo.ChangeDutyCycle(0)
+
+# =========================
+# N20 CONTROL
+# =========================
+def n20_up(speed=80):
+    GPIO.output(N20_IN1, GPIO.HIGH)
+    GPIO.output(N20_IN2, GPIO.LOW)
+    # pwmn20.ChangeDutyCycle(speed)
+
+def n20_down(speed=80):
+    GPIO.output(N20_IN1, GPIO.LOW)
+    GPIO.output(N20_IN2, GPIO.HIGH)
+    # pwmn20.ChangeDutyCycle(speed)
+
+def stop_n20():
+    GPIO.output(N20_IN1, GPIO.LOW)
+    GPIO.output(N20_IN2, GPIO.LOW)
+    # pwmn20.ChangeDutyCycle(0)
+
+def drive_n20():
+    # print("running n20 control")
+    while running:
+        with button_lock:
+            l = button_left
+            r = button_right
+
+        if toggleGrab:
+            if l == 1 and r != 1:
+                n20_up(80)
+            elif r == 1 and l != 1:
+                n20_down(80)
+            else:
+                stop_n20()
+
+        else:
+            stop_n20()
+
+        sleep(0.03)
 
 # =========================
 # SORTING CONTROL
@@ -486,7 +543,7 @@ def isGarbage(r, g, b, c):
     return isBlackRGB(r, g, b, c) or isGrayRGB(r, g, b, c) or isBrownRGB(r, g, b, c)
 
 def isFlap(r, g, b, c):
-    rb, bg, rb, br, gb, gr = get_ratios(r, g, b)
+    rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
 
     return (145 <= r <= 170) and \
            (50 <= g <= 60) and \
@@ -515,7 +572,7 @@ def drive_tt():
         time.sleep(0.005)
 
 # def drive_lift_motor():
-#     deadzone = 0.1
+#     deadzone = 0
 #     while running:
 #         with axis_lock:
 #             y = convert_range(axis_state_lifter[AXIS_LEFT_Y])
@@ -539,30 +596,31 @@ def drive_tt():
 
 #         time.sleep(0.01)
 
-def drive_servo():
-    global servo_angle
-    last_angle = servo_angle
-    print("moving servo")
-    while running:
-        with button_lock:
-            l = button_left
-            r = button_right
+# def drive_servo():
+#     global servo_angle
+#     last_angle = servo_angle
+#     print("moving servo")
+#     while running:
+#         with button_lock:
+#             l = button_left
+#             r = button_right
 
-        if l == 1 and r != 1:
-            servo_angle -= 5
-        elif r == 1 and l != 1:
-            servo_angle += 5
+#         if l == 1 and r != 1:
+#             servo_angle -= 5
+#         elif r == 1 and l != 1:
+#             servo_angle += 5
 
-        servo_angle = max(0, min(180, servo_angle))
+#         servo_angle = max(0, min(180, servo_angle))
 
-        if servo_angle != last_angle:
-            set_servo_angle(servo_angle)
-            last_angle = servo_angle
+#         if servo_angle != last_angle:
+#             set_servo_angle(servo_angle)
+#             last_angle = servo_angle
 
-        sleep(0.03)
+#         sleep(0.03)
+
 
 def run_color_sensor_and_sorter():
-   #  if toggleGrab is True:
+   #  if toggleGrab:
     while running:
         try:
             raw_r, raw_g, raw_b, raw_c = get_averaged_data(samples=7, delay=0.01)
@@ -614,13 +672,14 @@ def run_color_sensor_and_sorter():
 # STARTUP
 # =========================
 init_sensor()
-set_servo_angle(servo_angle)
+# set_servo_angle(servo_angle)
 
 threading.Thread(target=drive_tt, daemon=True).start()
 # threading.Thread(target=drive_lift_motor, daemon=True).start()
-threading.Thread(target=drive_servo, daemon=True).start()
+# threading.Thread(target=drive_servo, daemon=True).start()
 threading.Thread(target=run_color_sensor_and_sorter, daemon=True).start()
-threading.Thread(target=grabLED, daemon=True).start()
+# threading.Thread(target=grabLED, daemon=True).start()
+threading.Thread(target=drive_n20, daemon=True).start()
 
 # =========================
 # CONTROLLER INPUT
@@ -649,10 +708,10 @@ try:
 
         if t == 1 and n == 10 and v == 1:
             #print(t, n)
-            if toggleGrab is True:
+            if toggleGrab:
                 toggleGrab = False
                 #print(toggleGrab)
-            elif toggleGrab is False:
+            else:
                 toggleGrab = True
                 #print(toggleGrab)
 
@@ -682,9 +741,10 @@ finally:
     # tt_lift_up.stop()
     # tt_lift_down.stop()
     stop_sorting_motor()
-    servo.stop()
+    # servo.stop()
+    stop_n20()
 
-    for pwm in [tt_fl_f, tt_fl_b, tt_bl_f, tt_bl_b, tt_br_f, tt_br_b, tt_fr_f, tt_fr_b, p1, p2]:
+    for pwm in [tt_fl_f, tt_fl_b, tt_bl_f, tt_bl_b, tt_br_f, tt_br_b, tt_fr_f, tt_fr_b, p1, p2, pwmn20]:
         try:
             pwm.stop()
         except:
