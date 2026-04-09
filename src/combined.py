@@ -17,43 +17,43 @@ NSLEEP1 = 12
 NSLEEP2 = 13
 
 # Front Left
-tt_front_left_backward = 27
-tt_front_left_forward = 17
+TT_FRONT_LEFT_BACKWARD = 27
+TT_FRONT_LEFT_FORWARD = 17
 
 # Back Left
-tt_back_left_backward = 22
-tt_back_left_forward = 23
+TT_BACK_LEFT_BACKWARD = 22
+TT_BACK_LEFT_FORWARD = 23
 
 # Back Right
-tt_back_right_forward = 25
-tt_back_right_backward = 24
+TT_BACK_RIGHT_FORWARD = 25
+TT_BACK_RIGHT_BACKWARD = 24
 
 # Front Right
-tt_front_right_forward = 26
-tt_front_right_backward = 16
+TT_FRONT_RIGHT_FORWARD = 26
+TT_FRONT_RIGHT_BACKWARD = 16
 
 tt_motor_pins = [
-    tt_front_left_backward, tt_front_left_forward,
-    tt_back_left_backward, tt_back_left_forward,
-    tt_back_right_forward, tt_back_right_backward,
-    tt_front_right_forward, tt_front_right_backward
+    TT_FRONT_LEFT_BACKWARD, TT_FRONT_LEFT_FORWARD,
+    TT_BACK_LEFT_BACKWARD, TT_BACK_LEFT_FORWARD,
+    TT_BACK_RIGHT_FORWARD, TT_BACK_RIGHT_BACKWARD,
+    TT_FRONT_RIGHT_FORWARD, TT_FRONT_RIGHT_BACKWARD
 ]
 
 # FLIPPER MOTOR
-sorting_motor_right = 10
-sorting_motor_left = 9
+SORTING_MOTOR_RIGHT = 10
+SORTING_MOTOR_LEFT = 9
 
 # N20 MOTOR PINS
 N20_IN1 = 5
 N20_IN2 = 6
 
 # TT LIFTING MOTOR
-tt_lift_up = 20
-tt_lift_down = 21
+TT_LIFT_UP = 20
+TT_LIFT_DOWN = 21
 
 # TT WHEEL
-wheel_forward = 18
-wheel_backward = 15
+WHEEL_FORWARD = 18
+WHEEL_BACKWARD = 15
 
 # =========================
 # COLOR SENSOR SETUP
@@ -95,38 +95,38 @@ GPIO.output(N20_IN1, GPIO.LOW)
 GPIO.output(N20_IN2, GPIO.LOW)
 
 # SORTING MOTOR
-GPIO.setup(sorting_motor_right, GPIO.OUT)
-GPIO.setup(sorting_motor_left, GPIO.OUT)
-GPIO.output(sorting_motor_right, GPIO.LOW)
-GPIO.output(sorting_motor_left, GPIO.LOW)
+GPIO.setup(SORTING_MOTOR_RIGHT, GPIO.OUT)
+GPIO.setup(SORTING_MOTOR_LEFT, GPIO.OUT)
+GPIO.output(SORTING_MOTOR_RIGHT, GPIO.LOW)
+GPIO.output(SORTING_MOTOR_LEFT, GPIO.LOW)
 
 # TT LIFTING
-GPIO.setup(tt_lift_up, GPIO.OUT)
-GPIO.setup(tt_lift_down, GPIO.OUT)
-GPIO.output(tt_lift_up, GPIO.LOW)
-GPIO.output(tt_lift_down, GPIO.LOW)
+GPIO.setup(TT_LIFT_UP, GPIO.OUT)
+GPIO.setup(TT_LIFT_DOWN, GPIO.OUT)
+GPIO.output(TT_LIFT_UP, GPIO.LOW)
+GPIO.output(TT_LIFT_DOWN, GPIO.LOW)
 
 # TT WHEEL
-GPIO.setup(wheel_forward, GPIO.OUT)
-GPIO.setup(wheel_backward, GPIO.OUT)
-GPIO.output(wheel_forward, GPIO.LOW)
-GPIO.output(wheel_backward, GPIO.LOW)
+GPIO.setup(WHEEL_FORWARD, GPIO.OUT)
+GPIO.setup(WHEEL_BACKWARD, GPIO.OUT)
+GPIO.output(WHEEL_FORWARD, GPIO.LOW)
+GPIO.output(WHEEL_BACKWARD, GPIO.LOW)
 
 # =========================
 # PWM SETUP
 # =========================
 # TT MOTORS
-tt_fl_b = GPIO.PWM(tt_front_left_backward, 1000)
-tt_fl_f = GPIO.PWM(tt_front_left_forward, 1000)
+tt_fl_b = GPIO.PWM(TT_FRONT_LEFT_BACKWARD, 1000)
+tt_fl_f = GPIO.PWM(TT_FRONT_LEFT_FORWARD, 1000)
 
-tt_bl_b = GPIO.PWM(tt_back_left_backward, 1000)
-tt_bl_f = GPIO.PWM(tt_back_left_forward, 1000)
+tt_bl_b = GPIO.PWM(TT_BACK_LEFT_BACKWARD, 1000)
+tt_bl_f = GPIO.PWM(TT_BACK_LEFT_FORWARD, 1000)
 
-tt_br_b = GPIO.PWM(tt_back_right_backward, 1000)
-tt_br_f = GPIO.PWM(tt_back_right_forward, 1000)
+tt_br_b = GPIO.PWM(TT_BACK_RIGHT_BACKWARD, 1000)
+tt_br_f = GPIO.PWM(TT_BACK_RIGHT_FORWARD, 1000)
 
-tt_fr_b = GPIO.PWM(tt_front_right_backward, 1000)
-tt_fr_f = GPIO.PWM(tt_front_right_forward, 1000)
+tt_fr_b = GPIO.PWM(TT_FRONT_RIGHT_BACKWARD, 1000)
+tt_fr_f = GPIO.PWM(TT_FRONT_RIGHT_FORWARD, 1000)
 
 p1 = GPIO.PWM(NSLEEP1, 1000)
 p2 = GPIO.PWM(NSLEEP2, 1000)
@@ -138,8 +138,8 @@ for pwm in [tt_fl_f, tt_fl_b, tt_bl_f, tt_bl_b, tt_br_f, tt_br_b, tt_fr_f, tt_fr
     pwm.start(0)
 
 # TT LIFTING
-tt_lift_up_pwm = GPIO.PWM(tt_lift_up, 1000)
-tt_lift_down_pwm = GPIO.PWM(tt_lift_down, 1000)
+tt_lift_up_pwm = GPIO.PWM(TT_LIFT_UP, 1000)
+tt_lift_down_pwm = GPIO.PWM(TT_LIFT_DOWN, 1000)
 
 tt_lift_up_pwm.start(0)
 tt_lift_down_pwm.start(0)
@@ -333,16 +333,16 @@ def drive_n20():
 # SORTING CONTROL
 # =========================
 def sorting_right():
-    GPIO.output(sorting_motor_right, GPIO.HIGH)
-    GPIO.output(sorting_motor_left, GPIO.LOW)
+    GPIO.output(SORTING_MOTOR_RIGHT, GPIO.HIGH)
+    GPIO.output(SORTING_MOTOR_LEFT, GPIO.LOW)
 
 def sorting_left():
-    GPIO.output(sorting_motor_right, GPIO.LOW)
-    GPIO.output(sorting_motor_left, GPIO.HIGH)
+    GPIO.output(SORTING_MOTOR_RIGHT, GPIO.LOW)
+    GPIO.output(SORTING_MOTOR_LEFT, GPIO.HIGH)
 
 def stop_sorting_motor():
-    GPIO.output(sorting_motor_right, GPIO.LOW)
-    GPIO.output(sorting_motor_left, GPIO.LOW)
+    GPIO.output(SORTING_MOTOR_RIGHT, GPIO.LOW)
+    GPIO.output(SORTING_MOTOR_LEFT, GPIO.LOW)
 
 def sort_item(item):
     with sorting_lock:
@@ -376,16 +376,16 @@ def sort_item(item):
 # TT WHEEL CONTROL
 # =========================
 def wheel_spin_forward():
-    GPIO.output(wheel_forward, GPIO.HIGH)
-    GPIO.output(wheel_backward, GPIO.LOW)
+    GPIO.output(WHEEL_FORWARD, GPIO.HIGH)
+    GPIO.output(WHEEL_BACKWARD, GPIO.LOW)
 
 def wheel_spin_backward():
-    GPIO.output(wheel_forward, GPIO.LOW)
-    GPIO.output(wheel_backward, GPIO.HIGH)
+    GPIO.output(WHEEL_FORWARD, GPIO.LOW)
+    GPIO.output(WHEEL_BACKWARD, GPIO.HIGH)
 
 def stop_wheel():
-    GPIO.output(wheel_forward, GPIO.LOW)
-    GPIO.output(wheel_backward, GPIO.LOW)
+    GPIO.output(WHEEL_FORWARD, GPIO.LOW)
+    GPIO.output(WHEEL_BACKWARD, GPIO.LOW)
 
 # =========================
 # COLOR SENSOR FUNCTIONS
