@@ -101,16 +101,16 @@ GPIO.output(sorting_motor_right, GPIO.LOW)
 GPIO.output(sorting_motor_left, GPIO.LOW)
 
 # TT LIFTING
-# GPIO.setup(tt_lift_up, GPIO.OUT)
-# GPIO.setup(tt_lift_down, GPIO.OUT)
-# GPIO.output(tt_lift_up, GPIO.LOW)
-# GPIO.output(tt_lift_down, GPIO.LOW)
+GPIO.setup(tt_lift_up, GPIO.OUT)
+GPIO.setup(tt_lift_down, GPIO.OUT)
+GPIO.output(tt_lift_up, GPIO.LOW)
+GPIO.output(tt_lift_down, GPIO.LOW)
 
 # TT WHEEL
-# GPIO.setup(wheel_forward, GPIO.OUT)
-# GPIO.setup(wheel_backward, GPIO.OUT)
-# GPIO.output(wheel_forward, GPIO.LOW)
-# GPIO.output(wheel_backward, GPIO.LOW)
+GPIO.setup(wheel_forward, GPIO.OUT)
+GPIO.setup(wheel_backward, GPIO.OUT)
+GPIO.output(wheel_forward, GPIO.LOW)
+GPIO.output(wheel_backward, GPIO.LOW)
 
 # =========================
 # PWM SETUP
@@ -137,6 +137,13 @@ p2.start(80)
 for pwm in [tt_fl_f, tt_fl_b, tt_bl_f, tt_bl_b, tt_br_f, tt_br_b, tt_fr_f, tt_fr_b]:
     pwm.start(0)
 
+# TT LIFTING
+tt_lift_up_pwm = GPIO.PWM(tt_lift_up, 1000)
+tt_lift_down_pwm = GPIO.PWM(tt_lift_down, 1000)
+
+tt_lift_up_pwm.start(0)
+tt_lift_down_pwm.start(0)
+
 # =========================
 # LOCKS + GLOBAL STATE
 # =========================
@@ -157,8 +164,6 @@ AXIS_Y = 1
 AXIS_LT = 4
 AXIS_RT = 5
 
-toggleGrab = False
-
 AXIS_RIGHT_Y = 2
 AXIS_LEFT_Y = 3
 
@@ -176,6 +181,15 @@ axis_state_lifter = {
     AXIS_RIGHT_Y: 0,
     AXIS_LEFT_Y: 0,
 }
+
+BUTTON_ARROW_X = 6
+BUTTON_ARROW_Y = 7
+SortTrash = False
+SortAll = False
+
+BUTTON_X = 3
+BUTTON_A = 0
+BUTTON_B = 1
 
 button_left = 0
 button_right = 0
@@ -306,14 +320,10 @@ def drive_n20():
             l = button_left
             r = button_right
 
-        if toggleGrab:
-            if l == 1 and r != 1:
-                n20_up(80)
-            elif r == 1 and l != 1:
-                n20_down(80)
-            else:
-                stop_n20()
-
+        if l == 1 and r != 1:
+            n20_up(80)
+        elif r == 1 and l != 1:
+            n20_down(80)
         else:
             stop_n20()
 
@@ -336,17 +346,46 @@ def stop_sorting_motor():
 
 def sort_item(item):
     with sorting_lock:
+        if SortAll:
+            item = "All"
+
+        def go_right():
+            sorting_left() if SortTrash else sorting_right()
+        def go_left():
+            sorting_right() if SortTrash else sorting_left()
+
         if item == "Trash":
+            go_right()
+            time.sleep(0.05)
+
+        elif item == "Recycle":
+            go_left()
+            time.sleep(0.05)
+          
+        elif item == "All":
             sorting_right()
             time.sleep(0.05)
-        elif item == "Recycle":
-            sorting_left()
-            time.sleep(0.05)
+
         elif item == "Flap":
             sorting_right()
             time.sleep(0.03)
 
         stop_sorting_motor()
+
+# =========================
+# TT WHEEL CONTROL
+# =========================
+def wheel_spin_forward():
+    GPIO.output(wheel_forward, GPIO.HIGH)
+    GPIO.output(wheel_backward, GPIO.LOW)
+
+def wheel_spin_backward():
+    GPIO.output(wheel_forward, GPIO.LOW)
+    GPIO.output(wheel_backward, GPIO.HIGH)
+
+def stop_wheel():
+    GPIO.output(wheel_forward, GPIO.LOW)
+    GPIO.output(wheel_backward, GPIO.LOW)
 
 # =========================
 # COLOR SENSOR FUNCTIONS
@@ -517,30 +556,29 @@ def drive_tt():
 
         time.sleep(0.005)
 
-# def drive_lift_motor():
-#     deadzone = 0
-#     while running:
-#         with axis_lock:
-#             y = convert_range(axis_state_lifter[AXIS_LEFT_Y])
+def drive_lift_motor():
+    deadzone = 0
 
-#         if abs(y) < deadzone:
-#             tt_lift_up.ChangeDutyCycle(0)
-#             tt_lift_down.ChangeDutyCycle(0)
-#             time.sleep(0.01)
-#             continue
+    while running:
+        with axis_lock:
+            y = convert_range(axis_state_lifter[AXIS_LEFT_Y])
 
-#         speed = abs(y) * 100
+        if abs(y) < deadzone:
+            tt_lift_up_pwm.ChangeDutyCycle(0)
+            tt_lift_down_pwm.ChangeDutyCycle(0)
+            time.sleep(0.01)
+            continue
 
-#         if y < 0:
-#             # lift up
-#             tt_lift_up.ChangeDutyCycle(speed)
-#             tt_lift_down.ChangeDutyCycle(0)
-#         else:
-#             # lift down
-#             tt_lift_up.ChangeDutyCycle(0)
-#             tt_lift_down.ChangeDutyCycle(speed)
+        speed = min(abs(y) * 100, 100)
 
-#         time.sleep(0.01)
+        if y < 0:
+            tt_lift_up_pwm.ChangeDutyCycle(speed)
+            tt_lift_down_pwm.ChangeDutyCycle(0)
+        else:
+            tt_lift_up_pwm.ChangeDutyCycle(0)
+            tt_lift_down_pwm.ChangeDutyCycle(speed)
+
+        time.sleep(0.01)
 
 def run_color_sensor_and_sorter():
     while running:
@@ -593,11 +631,11 @@ def run_color_sensor_and_sorter():
 # =========================
 # STARTUP
 # =========================
-# init_sensor()
 
+init_sensor()
 threading.Thread(target=drive_tt, daemon=True).start()
-# threading.Thread(target=drive_lift_motor, daemon=True).start()
-# threading.Thread(target=run_color_sensor_and_sorter, daemon=True).start()
+threading.Thread(target=drive_lift_motor, daemon=True).start()
+threading.Thread(target=run_color_sensor_and_sorter, daemon=True).start()
 threading.Thread(target=drive_n20, daemon=True).start()
 
 # =========================
@@ -629,8 +667,23 @@ try:
             with axis_lock:
                 if n in axis_state:
                     axis_state[n] = v
-                # if n in axis_state_lifter:
-                #     axis_state_lifter[n] = v
+                if n in axis_state_lifter:
+                    axis_state_lifter[n] = v
+
+            if n == BUTTON_ARROW_X and v == 32767:
+                SortTrash = True
+                SortAll = False
+                print("Sort mode: Trash flipped")
+
+            elif n == BUTTON_ARROW_Y:
+                if v == 32767:
+                    SortAll = True
+                    SortTrash = False
+                    print("Sort mode: All")
+                elif v == -32767:
+                    SortTrash = False
+                    SortAll = False
+                    print("Sort mode: Normal")
 
         elif t == 1:
             with button_lock:
@@ -639,17 +692,30 @@ try:
                 elif n == BUTTON_RIGHT:
                     button_right = v
 
+            if v == 1:
+                if n == BUTTON_X:
+                    wheel_spin_forward()
+                    print("Wheel spinning forward")
+
+                elif n == BUTTON_A:
+                    stop_wheel()
+                    print("Wheel stopped")
+
+                elif n == BUTTON_B:
+                    wheel_spin_backward()
+                    print("Wheel spinning backward")
+
 finally:
     running = False
     sleep(0.05)
 
     stop_tt_motors()
-    # tt_lift_up.ChangeDutyCycle(0)
-    # tt_lift_down.ChangeDutyCycle(0)
-    # tt_lift_up.stop()
-    # tt_lift_down.stop()
     stop_sorting_motor()
     stop_n20()
+    tt_lift_up_pwm.ChangeDutyCycle(0)
+    tt_lift_down_pwm.ChangeDutyCycle(0)
+    tt_lift_up_pwm.stop()
+    tt_lift_down_pwm.stop()
 
     for pwm in [tt_fl_f, tt_fl_b, tt_bl_f, tt_bl_b, tt_br_f, tt_br_b, tt_fr_f, tt_fr_b, p1, p2]:
         try:
