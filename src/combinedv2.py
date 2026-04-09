@@ -671,13 +671,14 @@ def run_color_sensor_and_sorter():
 # =========================
 # STARTUP
 # =========================
-init_sensor()
+
+# init_sensor()
 # set_servo_angle(servo_angle)
 
 threading.Thread(target=drive_tt, daemon=True).start()
 # threading.Thread(target=drive_lift_motor, daemon=True).start()
 # threading.Thread(target=drive_servo, daemon=True).start()
-threading.Thread(target=run_color_sensor_and_sorter, daemon=True).start()
+# threading.Thread(target=run_color_sensor_and_sorter, daemon=True).start()
 # threading.Thread(target=grabLED, daemon=True).start()
 threading.Thread(target=drive_n20, daemon=True).start()
 
@@ -744,7 +745,7 @@ finally:
     # servo.stop()
     stop_n20()
 
-    for pwm in [tt_fl_f, tt_fl_b, tt_bl_f, tt_bl_b, tt_br_f, tt_br_b, tt_fr_f, tt_fr_b, p1, p2, pwmn20]:
+    for pwm in [tt_fl_f, tt_fl_b, tt_bl_f, tt_bl_b, tt_br_f, tt_br_b, tt_fr_f, tt_fr_b, p1, p2]:
         try:
             pwm.stop()
         except:

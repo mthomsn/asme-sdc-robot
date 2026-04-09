@@ -174,9 +174,9 @@ def start_servo():
             old_angle = angle
 
             if left_pressed == 1 and right_pressed != 1:
-                angle -= 20
+                angle -= 10
             if right_pressed == 1 and left_pressed != 1:
-                angle += 20
+                angle += 10
 
             if angle < 0:
                 angle = 0
