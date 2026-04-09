@@ -11,6 +11,7 @@ import statistics
 # =========================
 # PIN SETUP
 # =========================
+
 # TT DRIVE MOTORS
 NSLEEP1 = 12
 NSLEEP2 = 13
@@ -38,17 +39,21 @@ tt_motor_pins = [
     tt_front_right_forward, tt_front_right_backward
 ]
 
-# TT Lifting
-# tt_lift_up = 0
-# tt_lift_down = 0
-# tt_lifting_motor_pins = [tt_lift_up, tt_lift_down]
-
-# SERVO MOTOR PIN
-servo_pin = 18
-
-# SORTING MOTOR
+# FLIPPER MOTOR
 sorting_motor_right = 10
 sorting_motor_left = 9
+
+# N20 MOTOR PINS
+N20_IN1 = 5
+N20_IN2 = 6
+
+# TT LIFTING MOTOR
+tt_lift_up = 20
+tt_lift_down = 21
+
+# TT WHEEL
+wheel_forward = 18
+wheel_backward = 15
 
 # =========================
 # COLOR SENSOR SETUP
@@ -83,19 +88,29 @@ for pin in tt_motor_pins:
     GPIO.setup(pin, GPIO.OUT)
     GPIO.output(pin, GPIO.LOW)
 
-# TT LIFTING
-# for pin in tt_lifting_motor_pins:
-#     GPIO.setup(pin, GPIO.OUT)
-#     GPIO.output(pin, GPIO.LOW)
-
-# SERVO MOTOR
-GPIO.setup(servo_pin, GPIO.OUT)
+# N20 MOTOR
+GPIO.setup(N20_IN1, GPIO.OUT)
+GPIO.setup(N20_IN2, GPIO.OUT)
+GPIO.output(N20_IN1, GPIO.LOW)
+GPIO.output(N20_IN2, GPIO.LOW)
 
 # SORTING MOTOR
 GPIO.setup(sorting_motor_right, GPIO.OUT)
 GPIO.setup(sorting_motor_left, GPIO.OUT)
 GPIO.output(sorting_motor_right, GPIO.LOW)
 GPIO.output(sorting_motor_left, GPIO.LOW)
+
+# TT LIFTING
+GPIO.setup(tt_lift_up, GPIO.OUT)
+GPIO.setup(tt_lift_down, GPIO.OUT)
+GPIO.output(tt_lift_up, GPIO.LOW)
+GPIO.output(tt_lift_down, GPIO.LOW)
+
+# TT WHEEL
+GPIO.setup(wheel_forward, GPIO.OUT)
+GPIO.setup(wheel_backward, GPIO.OUT)
+GPIO.output(wheel_forward, GPIO.LOW)
+GPIO.output(wheel_backward, GPIO.LOW)
 
 # =========================
 # PWM SETUP
@@ -113,7 +128,6 @@ tt_br_f = GPIO.PWM(tt_back_right_forward, 1000)
 tt_fr_b = GPIO.PWM(tt_front_right_backward, 1000)
 tt_fr_f = GPIO.PWM(tt_front_right_forward, 1000)
 
-
 p1 = GPIO.PWM(NSLEEP1, 1000)
 p2 = GPIO.PWM(NSLEEP2, 1000)
 
@@ -124,14 +138,11 @@ for pwm in [tt_fl_f, tt_fl_b, tt_bl_f, tt_bl_b, tt_br_f, tt_br_b, tt_fr_f, tt_fr
     pwm.start(0)
 
 # TT LIFTING
-# tt_lift_up_pwm = GPIO.PWM(tt_lift_up, 1000)
-# tt_lift_down_pwm = GPIO.PWM(tt_lift_down, 1000)
-# tt_lift_up_pwm.start(0)
-# tt_lift_down_pwm.start(0)
+tt_lift_up_pwm = GPIO.PWM(tt_lift_up, 1000)
+tt_lift_down_pwm = GPIO.PWM(tt_lift_down, 1000)
 
-# SERVO MOTOR
-servo = GPIO.PWM(servo_pin, 50)
-servo.start(0)
+tt_lift_up_pwm.start(0)
+tt_lift_down_pwm.start(0)
 
 # =========================
 # LOCKS + GLOBAL STATE
@@ -145,7 +156,6 @@ running = True
 
 axis_lock = threading.Lock()
 button_lock = threading.Lock()
-angle_lock = threading.Lock()
 sorting_lock = threading.Lock()
 sensor_lock = threading.Lock()
 
@@ -153,8 +163,6 @@ AXIS_X = 0
 AXIS_Y = 1
 AXIS_LT = 4
 AXIS_RT = 5
-
-toggleGrab = False
 
 AXIS_RIGHT_Y = 2
 AXIS_LEFT_Y = 3
@@ -174,24 +182,17 @@ axis_state_lifter = {
     AXIS_LEFT_Y: 0,
 }
 
+BUTTON_ARROW_X = 6
+BUTTON_ARROW_Y = 7
+SortTrash = False
+SortAll = False
+
+BUTTON_X = 3
+BUTTON_A = 0
+BUTTON_B = 1
+
 button_left = 0
 button_right = 0
-servo_angle = 0
-
-# =========================
-# SORTING MOTOR FUNCTIONS
-# =========================
-def sorting_right():
-    GPIO.output(sorting_motor_right, GPIO.HIGH)
-    GPIO.output(sorting_motor_left, GPIO.LOW)
-
-def sorting_left():
-    GPIO.output(sorting_motor_right, GPIO.LOW)
-    GPIO.output(sorting_motor_left, GPIO.HIGH)
-
-def stop_sorting_motor():
-    GPIO.output(sorting_motor_right, GPIO.LOW)
-    GPIO.output(sorting_motor_left, GPIO.LOW)
 
 # =========================
 # UTILITY FUNCTIONS
@@ -299,30 +300,92 @@ def compute_tt_output():
     return output_v
 
 # =========================
-# SERVO CONTROL
+# N20 CONTROL
 # =========================
-def set_servo_angle(angle):
-    duty = 2.5 + (angle / 18.0)
-    servo.ChangeDutyCycle(duty)
-    sleep(0.02)
-    servo.ChangeDutyCycle(0)
+def n20_up(speed=80):
+    GPIO.output(N20_IN1, GPIO.HIGH)
+    GPIO.output(N20_IN2, GPIO.LOW)
+
+def n20_down(speed=80):
+    GPIO.output(N20_IN1, GPIO.LOW)
+    GPIO.output(N20_IN2, GPIO.HIGH)
+
+def stop_n20():
+    GPIO.output(N20_IN1, GPIO.LOW)
+    GPIO.output(N20_IN2, GPIO.LOW)
+
+def drive_n20():
+    while running:
+        with button_lock:
+            l = button_left
+            r = button_right
+
+        if l == 1 and r != 1:
+            n20_up(80)
+        elif r == 1 and l != 1:
+            n20_down(80)
+        else:
+            stop_n20()
+
+        sleep(0.03)
 
 # =========================
 # SORTING CONTROL
 # =========================
+def sorting_right():
+    GPIO.output(sorting_motor_right, GPIO.HIGH)
+    GPIO.output(sorting_motor_left, GPIO.LOW)
+
+def sorting_left():
+    GPIO.output(sorting_motor_right, GPIO.LOW)
+    GPIO.output(sorting_motor_left, GPIO.HIGH)
+
+def stop_sorting_motor():
+    GPIO.output(sorting_motor_right, GPIO.LOW)
+    GPIO.output(sorting_motor_left, GPIO.LOW)
+
 def sort_item(item):
     with sorting_lock:
+        if SortAll:
+            item = "All"
+
+        def go_right():
+            sorting_left() if SortTrash else sorting_right()
+        def go_left():
+            sorting_right() if SortTrash else sorting_left()
+
         if item == "Trash":
+            go_right()
+            time.sleep(0.05)
+
+        elif item == "Recycle":
+            go_left()
+            time.sleep(0.05)
+          
+        elif item == "All":
             sorting_right()
             time.sleep(0.05)
-        elif item == "Recycle":
-            sorting_left()
-            time.sleep(0.05)
+
         elif item == "Flap":
             sorting_right()
             time.sleep(0.03)
 
         stop_sorting_motor()
+
+# =========================
+# TT WHEEL CONTROL
+# =========================
+def wheel_spin_forward():
+    GPIO.output(wheel_forward, GPIO.HIGH)
+    GPIO.output(wheel_backward, GPIO.LOW)
+
+def wheel_spin_backward():
+    GPIO.output(wheel_forward, GPIO.LOW)
+    GPIO.output(wheel_backward, GPIO.HIGH)
+
+def stop_wheel():
+    GPIO.output(wheel_forward, GPIO.LOW)
+    GPIO.output(wheel_backward, GPIO.LOW)
 
 # =========================
 # COLOR SENSOR FUNCTIONS
@@ -408,60 +471,55 @@ def get_ratios(r, g, b):
 
 def isGreenRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
-    return (
-        (42 <= r <= 105) and
-        (105 <= g <= 155) and
-        (45 <= b <= 85) and
-        (c >= 400) and
-        (0.30 <= rg <= 0.90) and
-        (0.30 <= bg <= 0.85) and
-        (gr >= 1.0)
-    )
+
+    return (42 <= r <= 105) and \
+           (110 <= g <= 155) and \
+           (35 <= b <= 85) and \
+           (c >= 400) and \
+           (rg >= 0.30 and rg <= 0.90) and \
+           (bg >= 0.30 and bg <= 0.85) and \
+           (gr >= 1.0)
 
 def isBlueRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
-    return (
-        (25 <= r <= 65) and
-        (70 <= g <= 100) and
-        (90 <= b <= 170) and
-        (c >= 500) and
-        (br >= 1.5) and
-        (0.20 <= rb <= 0.70) and
-        (0.45 <= gb <= 1.00)
-    )
+
+    return (25 <= r <= 65) and \
+           (70 <= g <= 100) and \
+           (78 <= b <= 170) and \
+           (c >= 500) and \
+           (br >= 1.5) and \
+           (rb >= 0.20 and rb <= 0.70) and \
+           (gb >= 0.45 and gb <= 1.25)
 
 def isBlackRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
-    return (
-        (58 <= r <= 110) and
-        (80 <= g <= 105) and
-        (60 <= b <= 95) and
-        (200 <= c <= 1900) and
-        (0.55 <= rg <= 1.30) and
-        (0.60 <= rb <= 1.85)
-    )
+
+    return (58 <= r <= 110) and \
+           (78 <= g <= 105) and \
+           (55 <= b <= 95) and \
+           (700 <= c <= 1900) and \
+           (0.55 <= rg <= 1.30) and \
+           (0.65 <= rb <= 1.85) 
 
 def isGrayRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
-    return (
-        (70 <= r <= 105) and
-        (90 <= g <= 105) and
-        (67 <= b <= 75) and
-        (c >= 900) and
-        (0.70 <= rg <= 1.15) and
-        (0.85 <= rb <= 1.45)
-    )
+
+    return (64 <= r <= 105) and \
+           (86 <= g <= 105) and \
+           (40 <= b <= 75) and \
+           (600 <= c) and \
+           (0.70 <= rg <= 1.15) and \
+           (0.85 <= rb <= 2.45)
 
 def isBrownRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
-    return (
-        (85 <= r <= 120) and
-        (85 <= g <= 105) and
-        (50 <= b <= 68) and
-        (c >= 500) and
-        (0.90 <= rg <= 1.35) and
-        (1.30 <= rb <= 2.30)
-    )
+
+    return (85 <= r <= 120) and \
+           (70 <= g <= 100) and \
+           (42 <= b <= 68) and \
+           (650 <= c) and \
+           (0.90 <= rg <= 1.45) and \
+           (1.30 <= rb <= 2.40)
 
 def isRecyclable(r, g, b, c):
     return isGreenRGB(r, g, b, c) or isBlueRGB(r, g, b, c)
@@ -471,14 +529,13 @@ def isGarbage(r, g, b, c):
 
 def isFlap(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
-    return (
-        (145 <= r <= 170) and
-        (50 <= g <= 60) and
-        (30 <= b <= 40) and
-        (c >= 500) and
-        (2.60 <= rg <= 3.50) and
-        (3.00 <= rb <= 6.00)
-    )
+
+    return (145 <= r <= 170) and \
+           (50 <= g <= 60) and \
+           (30 <= b <= 40) and \
+           (500 <= c) and \
+           (2.60 <= rg <= 3.50) and \
+           (3.00 <= rb <= 6.00)
 
 # =========================
 # THREADS
@@ -499,55 +556,31 @@ def drive_tt():
 
         time.sleep(0.005)
 
-# def drive_lift_motor():
-#     deadzone = 0.1
-#     while running:
-#         with axis_lock:
-#             y = convert_range(axis_state_lifter[AXIS_LEFT_Y])
+def drive_lift_motor():
+    deadzone = 0
 
-#         if abs(y) < deadzone:
-#             tt_lift_up.ChangeDutyCycle(0)
-#             tt_lift_down.ChangeDutyCycle(0)
-#             time.sleep(0.01)
-#             continue
-
-#         speed = abs(y) * 100
-
-#         if y < 0:
-#             # lift up
-#             tt_lift_up.ChangeDutyCycle(speed)
-#             tt_lift_down.ChangeDutyCycle(0)
-#         else:
-#             # lift down
-#             tt_lift_up.ChangeDutyCycle(0)
-#             tt_lift_down.ChangeDutyCycle(speed)
-
-#         time.sleep(0.01)
-
-def drive_servo():
-    global servo_angle
-    last_angle = servo_angle
-    print("moving servo")
     while running:
-        with button_lock:
-            l = button_left
-            r = button_right
+        with axis_lock:
+            y = convert_range(axis_state_lifter[AXIS_LEFT_Y])
 
-        if l == 1 and r != 1:
-            servo_angle -= 5
-        elif r == 1 and l != 1:
-            servo_angle += 5
+        if abs(y) < deadzone:
+            tt_lift_up_pwm.ChangeDutyCycle(0)
+            tt_lift_down_pwm.ChangeDutyCycle(0)
+            time.sleep(0.01)
+            continue
 
-        servo_angle = max(0, min(180, servo_angle))
+        speed = min(abs(y) * 100, 100)
 
-        if servo_angle != last_angle:
-            set_servo_angle(servo_angle)
-            last_angle = servo_angle
+        if y < 0:
+            tt_lift_up_pwm.ChangeDutyCycle(speed)
+            tt_lift_down_pwm.ChangeDutyCycle(0)
+        else:
+            tt_lift_up_pwm.ChangeDutyCycle(0)
+            tt_lift_down_pwm.ChangeDutyCycle(speed)
 
-        sleep(0.03)
+        time.sleep(0.01)
 
 def run_color_sensor_and_sorter():
-   #  if toggleGrab is True:
     while running:
         try:
             raw_r, raw_g, raw_b, raw_c = get_averaged_data(samples=7, delay=0.01)
@@ -598,13 +631,12 @@ def run_color_sensor_and_sorter():
 # =========================
 # STARTUP
 # =========================
-init_sensor()
-set_servo_angle(servo_angle)
 
+init_sensor()
 threading.Thread(target=drive_tt, daemon=True).start()
-# threading.Thread(target=drive_lift_motor, daemon=True).start()
-threading.Thread(target=drive_servo, daemon=True).start()
+threading.Thread(target=drive_lift_motor, daemon=True).start()
 threading.Thread(target=run_color_sensor_and_sorter, daemon=True).start()
+threading.Thread(target=drive_n20, daemon=True).start()
 
 # =========================
 # CONTROLLER INPUT
@@ -631,40 +663,59 @@ try:
         n = int(match.group(2))
         v = int(match.group(3))
 
-        if t == 1 and n == 10 and v == 1:
-            #print(t, n)
-            if toggleGrab is True:
-                toggleGrab = False
-                #print(toggleGrab)
-            elif toggleGrab is False:
-                toggleGrab = True
-                #print(toggleGrab)
-
         if t == 2:
             with axis_lock:
                 if n in axis_state:
                     axis_state[n] = v
-                # if n in axis_state_lifter and toggleGrab is True:
-                #     axis_state_lifter[n] = v
+                if n in axis_state_lifter:
+                    axis_state_lifter[n] = v
 
-        elif t == 1 and toggleGrab is True:
+            if n == BUTTON_ARROW_X and v == 32767:
+                SortTrash = True
+                SortAll = False
+                print("Sort mode: Trash flipped")
+
+            elif n == BUTTON_ARROW_Y:
+                if v == 32767:
+                    SortAll = True
+                    SortTrash = False
+                    print("Sort mode: All")
+                elif v == -32767:
+                    SortTrash = False
+                    SortAll = False
+                    print("Sort mode: Normal")
+
+        elif t == 1:
             with button_lock:
                 if n == BUTTON_LEFT:
                     button_left = v
                 elif n == BUTTON_RIGHT:
                     button_right = v
 
+            if v == 1:
+                if n == BUTTON_X:
+                    wheel_spin_forward()
+                    print("Wheel spinning forward")
+
+                elif n == BUTTON_A:
+                    stop_wheel()
+                    print("Wheel stopped")
+
+                elif n == BUTTON_B:
+                    wheel_spin_backward()
+                    print("Wheel spinning backward")
+
 finally:
     running = False
     sleep(0.05)
 
     stop_tt_motors()
-    # tt_lift_up.ChangeDutyCycle(0)
-    # tt_lift_down.ChangeDutyCycle(0)
-    # tt_lift_up.stop()
-    # tt_lift_down.stop()
     stop_sorting_motor()
-    servo.stop()
+    stop_n20()
+    tt_lift_up_pwm.ChangeDutyCycle(0)
+    tt_lift_down_pwm.ChangeDutyCycle(0)
+    tt_lift_up_pwm.stop()
+    tt_lift_down_pwm.stop()
 
     for pwm in [tt_fl_f, tt_fl_b, tt_bl_f, tt_bl_b, tt_br_f, tt_br_b, tt_fr_f, tt_fr_b, p1, p2]:
         try:
@@ -676,5 +727,6 @@ finally:
         process.terminate()
     except:
         pass
+
 
     GPIO.cleanup()
