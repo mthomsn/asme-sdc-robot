@@ -34,4 +34,4 @@ for i in 5 4 3 2 1; do
 	sleep 1
 done
 
-python home/zero/SDC-UR-DC/src/joystick.py
+python home/zero/SDC-UR-DC/src/combined.py
