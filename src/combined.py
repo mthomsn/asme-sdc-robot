@@ -48,8 +48,8 @@ N20_IN1 = 5
 N20_IN2 = 6
 
 # TT LIFTING MOTOR
-TT_LIFT_UP = 20
-TT_LIFT_DOWN = 21
+TT_LIFT_UP = 21
+TT_LIFT_DOWN = 20
 
 # TT WHEEL
 WHEEL_FORWARD = 18
@@ -335,10 +335,12 @@ def drive_n20():
 def sorting_right():
     GPIO.output(SORTING_MOTOR_RIGHT, GPIO.HIGH)
     GPIO.output(SORTING_MOTOR_LEFT, GPIO.LOW)
+    print("\nright")
 
 def sorting_left():
     GPIO.output(SORTING_MOTOR_RIGHT, GPIO.LOW)
     GPIO.output(SORTING_MOTOR_LEFT, GPIO.HIGH)
+    print("\nleft")
 
 def stop_sorting_motor():
     GPIO.output(SORTING_MOTOR_RIGHT, GPIO.LOW)
@@ -356,15 +358,15 @@ def sort_item(item):
 
         if item == "Trash":
             go_right()
-            time.sleep(0.05)
+            time.sleep(0.03)
 
         elif item == "Recycle":
             go_left()
-            time.sleep(0.05)
+            time.sleep(0.03)
           
         elif item == "All":
             sorting_right()
-            time.sleep(0.05)
+            time.sleep(0.03)
 
         elif item == "Flap":
             sorting_right()
@@ -425,7 +427,7 @@ def get_raw_data():
         b = read_word(BDATAL)
     return r, g, b, c
 
-def get_averaged_data(samples=7, delay=0.02):
+def get_averaged_data(samples=7, delay=0.03):
     r_vals = []
     g_vals = []
     b_vals = []
@@ -472,11 +474,11 @@ def get_ratios(r, g, b):
 def isGreenRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
 
-    return (42 <= r <= 105) and \
-           (110 <= g <= 155) and \
+    return (30 <= r <= 105) and \
+           (110 <= g <= 175) and \
            (35 <= b <= 85) and \
            (c >= 400) and \
-           (rg >= 0.30 and rg <= 0.90) and \
+           (rg >= 0.20 and rg <= 0.90) and \
            (bg >= 0.30 and bg <= 0.85) and \
            (gr >= 1.0)
 
@@ -583,7 +585,7 @@ def drive_lift_motor():
 def run_color_sensor_and_sorter():
     while running:
         try:
-            raw_r, raw_g, raw_b, raw_c = get_averaged_data(samples=7, delay=0.01)
+            raw_r, raw_g, raw_b, raw_c = get_averaged_data(samples=7, delay=0.03)
 
             if raw_c < 250:
                 print(f"R: 0\tG: 0\tB: 0\tC: {raw_c}\t=> EMPTY / TOO DARK")

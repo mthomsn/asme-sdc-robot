@@ -3,23 +3,26 @@ import time
 import statistics
 import RPi.GPIO as GPIO
 
-mp1 = 17 #motor pin 1
-mp2 = 27 #motor pin 2
+mp1 = 0 #motor pin 1
+mp2 = 0 #motor pin 2
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(mp1, GPIO.OUT)
 GPIO.setup(mp2, GPIO.OUT)
 
 def right():
-    GPIO.output(mp1, GPIO.HIGH)
-    GPIO.output(mp2, GPIO.LOW)
+    print("right")
+   # GPIO.output(mp1, GPIO.HIGH)
+   # GPIO.output(mp2, GPIO.LOW)
 
 def left():
-    GPIO.output(mp1, GPIO.LOW)
-    GPIO.output(mp2, GPIO.HIGH)
+    print("left")
+   # GPIO.output(mp1, GPIO.LOW)
+   # GPIO.output(mp2, GPIO.HIGH)
 
 def stop():
-    GPIO.output(mp1, GPIO.LOW)
-    GPIO.output(mp2, GPIO.LOW)
+    print("stop")
+   # GPIO.output(mp1, GPIO.LOW)
+   # GPIO.output(mp2, GPIO.LOW)
 
 
 def sort(item):
