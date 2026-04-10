@@ -144,6 +144,14 @@ tt_lift_down_pwm = GPIO.PWM(TT_LIFT_DOWN, 1000)
 tt_lift_up_pwm.start(0)
 tt_lift_down_pwm.start(0)
 
+wheel_forward_pwm = GPIO.PWM(WHEEL_FORWARD, 1000)
+wheel_backward_pwm = GPIO.PWM(WHEEL_BACKWARD, 1000)
+
+wheel_forward_pwm.start(0)
+wheel_backward_pwm.start(0)
+
+wheel_speed = 60
+
 # =========================
 # LOCKS + GLOBAL STATE
 # =========================
@@ -375,17 +383,28 @@ def sort_item(item):
 # =========================
 # TT WHEEL CONTROL
 # =========================
-def wheel_spin_forward():
-    GPIO.output(WHEEL_FORWARD, GPIO.HIGH)
-    GPIO.output(WHEEL_BACKWARD, GPIO.LOW)
+def set_wheel_speed(speed):
+    global wheel_speed
+    wheel_speed = max(0, min(100, speed))
+    print(f"Wheel speed set to {wheel_speed}")
 
-def wheel_spin_backward():
-    GPIO.output(WHEEL_FORWARD, GPIO.LOW)
-    GPIO.output(WHEEL_BACKWARD, GPIO.HIGH)
+def wheel_spin_forward(speed=None):
+    if speed is None:
+        speed = wheel_speed
+    speed = max(0, min(100, speed))
+    wheel_backward_pwm.ChangeDutyCycle(0)
+    wheel_forward_pwm.ChangeDutyCycle(speed)
+
+def wheel_spin_backward(speed=None):
+    if speed is None:
+        speed = wheel_speed
+    speed = max(0, min(100, speed))
+    wheel_forward_pwm.ChangeDutyCycle(0)
+    wheel_backward_pwm.ChangeDutyCycle(speed)
 
 def stop_wheel():
-    GPIO.output(WHEEL_FORWARD, GPIO.LOW)
-    GPIO.output(WHEEL_BACKWARD, GPIO.LOW)
+    wheel_forward_pwm.ChangeDutyCycle(0)
+    wheel_backward_pwm.ChangeDutyCycle(0)
 
 # =========================
 # COLOR SENSOR FUNCTIONS
