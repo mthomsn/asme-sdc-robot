@@ -150,7 +150,7 @@ wheel_backward_pwm = GPIO.PWM(WHEEL_BACKWARD, 1000)
 wheel_forward_pwm.start(0)
 wheel_backward_pwm.start(0)
 
-wheel_speed = 60
+wheel_speed = 40
 
 # =========================
 # LOCKS + GLOBAL STATE
