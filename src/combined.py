@@ -55,6 +55,9 @@ TT_LIFT_DOWN = 20
 WHEEL_FORWARD = 18
 WHEEL_BACKWARD = 15
 
+# SERVO
+SERVO_PIN = 19
+
 # =========================
 # COLOR SENSOR SETUP
 # =========================
@@ -112,6 +115,9 @@ GPIO.setup(WHEEL_BACKWARD, GPIO.OUT)
 GPIO.output(WHEEL_FORWARD, GPIO.LOW)
 GPIO.output(WHEEL_BACKWARD, GPIO.LOW)
 
+# SERVO
+GPIO.setup(SERVO_PIN, GPIO.OUT)
+
 # =========================
 # PWM SETUP
 # =========================
@@ -150,7 +156,18 @@ wheel_backward_pwm = GPIO.PWM(WHEEL_BACKWARD, 1000)
 wheel_forward_pwm.start(0)
 wheel_backward_pwm.start(0)
 
-wheel_speed = 40
+servo_pwm = GPIO.PWM(SERVO_PIN, 50)
+servo_pwm.start(0)
+
+# =========================
+# WHEEL INTERVAL STATE
+# =========================
+wheel_interval_enabled = False
+wheel_direction = 1
+wheel_on_time = 0.2 
+wheel_off_time = 0.4
+wheel_speed = 50
+wheel_lock = threading.Lock()
 
 # =========================
 # LOCKS + GLOBAL STATE
@@ -198,9 +215,22 @@ SortAll = False
 BUTTON_X = 3
 BUTTON_A = 0
 BUTTON_B = 1
+BUTTON_Y = 4
 
 button_left = 0
 button_right = 0
+
+servo_position = 0
+servo_toggle = False
+
+# ========================
+# SERVO CONTROL
+# ========================
+def set_servo_angle(angle):
+    duty = 2 + (angle / 18)
+    servo_pwm.ChangeDutyCycle(duty)
+    time.sleep(0.3)
+    servo_pwm.ChangeDutyCycle(0) 
 
 # =========================
 # UTILITY FUNCTIONS
@@ -408,6 +438,30 @@ def stop_wheel():
     wheel_forward_pwm.ChangeDutyCycle(0)
     wheel_backward_pwm.ChangeDutyCycle(0)
 
+def drive_wheel_interval():
+    global wheel_interval_enabled, wheel_direction
+
+    while running:
+        with wheel_lock:
+            enabled = wheel_interval_enabled
+            direction = wheel_direction
+            on_time = wheel_on_time
+            off_time = wheel_off_time
+            speed = wheel_speed
+
+        if enabled:
+            if direction == 1:
+                wheel_spin_forward(speed)
+            else:
+                wheel_spin_backward(speed)
+
+            time.sleep(on_time)
+            stop_wheel()
+            time.sleep(off_time)
+        else:
+            stop_wheel()
+            time.sleep(0.01)
+            
 # =========================
 # COLOR SENSOR FUNCTIONS
 # =========================
@@ -658,6 +712,7 @@ threading.Thread(target=drive_tt, daemon=True).start()
 threading.Thread(target=drive_lift_motor, daemon=True).start()
 threading.Thread(target=run_color_sensor_and_sorter, daemon=True).start()
 threading.Thread(target=drive_n20, daemon=True).start()
+threading.Thread(target=drive_wheel_interval, daemon=True).start()
 
 # =========================
 # CONTROLLER INPUT
@@ -712,19 +767,46 @@ try:
                     button_left = v
                 elif n == BUTTON_RIGHT:
                     button_right = v
-
             if v == 1:
                 if n == BUTTON_X:
-                    wheel_spin_forward()
-                    print("Wheel spinning forward")
-
-                elif n == BUTTON_A:
-                    stop_wheel()
-                    print("Wheel stopped")
+                    with wheel_lock:
+                        wheel_direction = 1
+                        wheel_interval_enabled = True
+                    print("Wheel interval forward")
 
                 elif n == BUTTON_B:
-                    wheel_spin_backward()
-                    print("Wheel spinning backward")
+                    with wheel_lock:
+                        wheel_direction = -1
+                        wheel_interval_enabled = True
+                    print("Wheel interval backward")
+
+                elif n == BUTTON_A:
+                    with wheel_lock:
+                        wheel_interval_enabled = False
+                    stop_wheel()
+                    print("Wheel stopped")
+                    
+                if n == BUTTON_Y:
+                    servo_toggle = not servo_toggle
+                    if servo_toggle:
+                        set_servo_angle(90)
+                        print("Servo -> 90°")
+                    else:
+                        set_servo_angle(0)
+                        print("Servo -> 0°")
+
+            # if v == 1:
+            #     if n == BUTTON_X:
+            #         wheel_spin_forward()
+            #         print("Wheel spinning forward")
+
+            #     elif n == BUTTON_A:
+            #         stop_wheel()
+            #         print("Wheel stopped")
+
+            #     elif n == BUTTON_B:
+            #         wheel_spin_backward()
+            #         print("Wheel spinning backward")
 
 finally:
     running = False
