@@ -52,8 +52,8 @@ TT_LIFT_UP = 21
 TT_LIFT_DOWN = 20
 
 # TT WHEEL
-WHEEL_FORWARD = 18
-WHEEL_BACKWARD = 15
+WHEEL_FORWARD = 15
+WHEEL_BACKWARD = 18
 
 # SERVO
 SERVO_PIN = 19
@@ -162,12 +162,12 @@ servo_pwm.start(0)
 # =========================
 # WHEEL INTERVAL STATE
 # =========================
-wheel_interval_enabled = False
-wheel_direction = 1
-wheel_on_time = 0.2 
-wheel_off_time = 0.4
-wheel_speed = 50
-wheel_lock = threading.Lock()
+# wheel_interval_enabled = False
+# wheel_direction = 1
+# wheel_on_time = 0.2 
+# wheel_off_time = 0.4
+wheel_speed = 100
+# wheel_lock = threading.Lock()
 
 # =========================
 # LOCKS + GLOBAL STATE
@@ -267,10 +267,10 @@ def compute_tt_output():
 
     backward_v = [1, 1, 1, 1, 0, 0, 0, 0]
     forward_v = [0, 0, 0, 0, 1, 1, 1, 1]
-    right_v = [1, 0, 1, 0, 0, 1, 0, 1]
-    left_v = [0, 1, 0, 1, 1, 0, 1, 0]
-    counter_v = [1, 1, 0, 0, 0, 0, 1, 1]
-    clock_v = [0, 0, 1, 1, 1, 1, 0, 0]
+    left_v = [1, 0, 1, 0, 0, 1, 0, 1]
+    right_v = [0, 1, 0, 1, 1, 0, 1, 0]
+    clock_v = [1, 1, 0, 0, 0, 0, 1, 1]
+    counter_v = [0, 0, 1, 1, 1, 1, 0, 0]
 
     working_v = [0] * 8
     output_v = [0] * 8
@@ -438,29 +438,29 @@ def stop_wheel():
     wheel_forward_pwm.ChangeDutyCycle(0)
     wheel_backward_pwm.ChangeDutyCycle(0)
 
-def drive_wheel_interval():
-    global wheel_interval_enabled, wheel_direction
+#def drive_wheel_interval():
+   # global wheel_interval_enabled, wheel_direction
 
-    while running:
-        with wheel_lock:
-            enabled = wheel_interval_enabled
-            direction = wheel_direction
-            on_time = wheel_on_time
-            off_time = wheel_off_time
-            speed = wheel_speed
+   # while running:
+    #    with wheel_lock:
+     #       enabled = wheel_interval_enabled
+            #direction = wheel_direction
+            #on_time = wheel_on_time
+            #off_time = wheel_off_time
+            #speed = wheel_speed
 
-        if enabled:
-            if direction == 1:
-                wheel_spin_forward(speed)
-            else:
-                wheel_spin_backward(speed)
+        #if enabled:
+         #   if direction == 1:
+          #      wheel_spin_forward(speed)
+           # else:
+            #    wheel_spin_backward(speed)
 
-            time.sleep(on_time)
-            stop_wheel()
-            time.sleep(off_time)
-        else:
-            stop_wheel()
-            time.sleep(0.01)
+           # time.sleep(on_time)
+           # stop_wheel()
+           # time.sleep(off_time)
+       # else:
+        #    stop_wheel()
+         #   time.sleep(0.01)
             
 # =========================
 # COLOR SENSOR FUNCTIONS
@@ -572,17 +572,17 @@ def isBlackRGB(r, g, b, c):
     return (58 <= r <= 110) and \
            (78 <= g <= 105) and \
            (55 <= b <= 95) and \
-           (700 <= c <= 1900) and \
+           (1500 <= c <= 4000) and \
            (0.55 <= rg <= 1.30) and \
            (0.65 <= rb <= 1.85) 
 
 def isGrayRGB(r, g, b, c):
     rg, bg, rb, br, gb, gr = get_ratios(r, g, b)
 
-    return (64 <= r <= 105) and \
+    return (64 <= r <= 95) and \
            (86 <= g <= 105) and \
-           (40 <= b <= 75) and \
-           (600 <= c) and \
+           (50 <= b <= 75) and \
+           (2000 <= c) and \
            (0.70 <= rg <= 1.15) and \
            (0.85 <= rb <= 2.45)
 
@@ -592,7 +592,7 @@ def isBrownRGB(r, g, b, c):
     return (85 <= r <= 120) and \
            (70 <= g <= 100) and \
            (42 <= b <= 68) and \
-           (650 <= c) and \
+           (900 <= c) and \
            (0.90 <= rg <= 1.45) and \
            (1.30 <= rb <= 2.40)
 
@@ -712,7 +712,7 @@ threading.Thread(target=drive_tt, daemon=True).start()
 threading.Thread(target=drive_lift_motor, daemon=True).start()
 threading.Thread(target=run_color_sensor_and_sorter, daemon=True).start()
 threading.Thread(target=drive_n20, daemon=True).start()
-threading.Thread(target=drive_wheel_interval, daemon=True).start()
+#threading.Thread(target=drive_wheel_interval, daemon=True).start()
 
 # =========================
 # CONTROLLER INPUT
@@ -768,45 +768,43 @@ try:
                 elif n == BUTTON_RIGHT:
                     button_right = v
             if v == 1:
-                if n == BUTTON_X:
-                    with wheel_lock:
-                        wheel_direction = 1
-                        wheel_interval_enabled = True
-                    print("Wheel interval forward")
+               # if n == BUTTON_X:
+                #    with wheel_lock:
+                 #       wheel_direction = 1
+                  #      wheel_interval_enabled = True
+                   # print("Wheel interval forward")
 
-                elif n == BUTTON_B:
-                    with wheel_lock:
-                        wheel_direction = -1
-                        wheel_interval_enabled = True
-                    print("Wheel interval backward")
+           #     elif n == BUTTON_B:
+            #        with wheel_lock:
+             #           wheel_direction = -1
+              #          wheel_interval_enabled = True
+               #     print("Wheel interval backward")
 
-                elif n == BUTTON_A:
-                    with wheel_lock:
-                        wheel_interval_enabled = False
-                    stop_wheel()
-                    print("Wheel stopped")
+               # elif n == BUTTON_A:
+               #     with wheel_lock:
+                #        wheel_interval_enabled = False
+                 #   stop_wheel()
+                  #  print("Wheel stopped")
                     
                 if n == BUTTON_Y:
                     servo_toggle = not servo_toggle
                     if servo_toggle:
-                        set_servo_angle(90)
+                        set_servo_angle(180)
                         print("Servo -> 90°")
                     else:
                         set_servo_angle(0)
                         print("Servo -> 0°")
+                if n == BUTTON_X:
+                    wheel_spin_forward()
+                    print("Wheel spinning forward")
 
-            # if v == 1:
-            #     if n == BUTTON_X:
-            #         wheel_spin_forward()
-            #         print("Wheel spinning forward")
+                elif n == BUTTON_A:
+                    stop_wheel()
+                    print("Wheel stopped")
 
-            #     elif n == BUTTON_A:
-            #         stop_wheel()
-            #         print("Wheel stopped")
-
-            #     elif n == BUTTON_B:
-            #         wheel_spin_backward()
-            #         print("Wheel spinning backward")
+                elif n == BUTTON_B:
+                    wheel_spin_backward()
+                    print("Wheel spinning backward")
 
 finally:
     running = False
